@@ -2,7 +2,22 @@
 
 ## 📌 Proposta 3 – Gestão de Manutenção Predial
 
-### 🏢 Situação Problema
+---
+
+## 🔗 Links do Projeto
+
+📌 Protótipo no Figma:  
+https://www.figma.com/design/SQHpUYEEDjRpvFAai5TZEo/Gest%C3%A3o-de-Manuten%C3%A7%C3%A3o-Predial?node-id=0-1&p=f&t=Czhuw3LMMouW7fCQ-0
+
+📌 Organização Ágil no Trello:  
+https://trello.com/b/EwVMPQLe/projeto-gestao-de-manutencao-predial
+
+📌 Repositório no GitHub:  
+https://github.com/matheus130607/Gestao-de-Manutencao-Predial
+
+---
+
+## 🏢 Situação Problema
 
 O SENAI enfrenta diariamente centenas de solicitações de manutenção predial, variando entre problemas simples (lâmpadas queimadas) até ocorrências complexas (falhas hidráulicas e estruturais).
 
@@ -188,8 +203,6 @@ Metodologia Ágil (Scrum simplificado):
 
 Duração total: até junho
 
-Exemplo de organização:
-
 Fevereiro:
 - Levantamento de requisitos
 - Modelagem do banco
@@ -216,42 +229,20 @@ Junho:
 
 ---
 
-## 7. Estimativa de Custo
-
-Custos envolvidos:
-
-- Infraestrutura (servidor e banco)
-- Horas de desenvolvimento
-- Ferramentas (caso versão paga do Trello ou Figma)
-
-Projeto acadêmico com custo estimado variável conforme recursos utilizados.
-
----
-
-## 8. Softwares Utilizados
+## 7. Softwares Utilizados
 
 - Laravel  
 - PHP  
 - MySQL  
 - Composer  
 - Git e GitHub  
-- Trello (metodologia ágil)  
-- Figma (prototipagem)  
-- Microsoft Word (documentação técnica)  
+- Trello  
+- Figma  
+- Microsoft Word  
 
 ---
 
-## 9. Dependências de Software
-
-Principais dependências:
-
-- laravel/framework  
-- laravel/sanctum (caso utilize autenticação por token)  
-- guzzlehttp (requisições HTTP)  
-
----
-
-## 10. Documentação Técnica
+## 8. Documentação Técnica
 
 A documentação será elaborada em Word contendo:
 
@@ -262,17 +253,6 @@ A documentação será elaborada em Word contendo:
 - Fluxo do sistema  
 - Manual de instalação  
 - Manual de uso  
-
----
-
-## 11. Boas Práticas Aplicadas
-
-- Padrão MVC  
-- Validação de dados com Form Requests  
-- Controle de acesso por perfil  
-- Versionamento com Git  
-- Organização de código  
-- Aplicação de princípios de código limpo  
 
 ---
 
