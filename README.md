@@ -50,12 +50,12 @@ Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 
 Sistema de autenticação com níveis de acesso:
 
-- Usuário
+- **Usuário**
   - Pode abrir chamados
   - Pode acompanhar status
   - Pode visualizar histórico
 
-- Responsável/Técnico
+- **Responsável/Técnico**
   - Atualiza status do chamado
   - Registra observações técnicas
   - Finaliza atendimentos
@@ -141,21 +141,20 @@ Implementação inicial via registro no banco de dados e retorno via API.
 
 ---
 
-## 2. Infraestrutura Física
+## 2. Diagramas do Sistema
 
-Ambiente de desenvolvimento:
+Para garantir a correta estruturação e compreensão do fluxo de dados da API, o projeto utilizará as seguintes modelagens UML:
 
-- Computadores com mínimo 8GB RAM  
-- PHP 8+  
-- Composer  
-- MySQL  
-- Servidor local (XAMPP, Laragon ou similar)
+**Diagrama de Classes:**
+Focado na estruturação do banco de dados e da modelagem orientada a objetos (Models do Laravel), definindo:
+- **Usuários:** Atributos de autenticação e níveis de acesso (Usuário vs. Responsável).
+- **Chamados:** Relação com usuários (solicitante e técnico designado), contendo atributos como tipo, local, prioridade e status atual.
+- **Histórico:** Entidade associativa para registrar a linha do tempo das manutenções, garantindo a rastreabilidade do workflow.
 
-Infraestrutura de produção:
-
-- Servidor VPS ou hospedagem compatível com PHP  
-- Banco de dados MySQL  
-- Backup periódico  
+**Diagrama de Sequência:**
+Focado em mapear a comunicação entre as camadas do sistema durante as principais ações:
+- **Abertura de Chamados:** Demonstra o fluxo desde a requisição do Front-End, passando pela rota da API, validação no *FormRequest*, processamento pelo *Controller/Service*, persistência no banco (MySQL) e retorno de sucesso em JSON.
+- **Atualização de Status:** Detalha a interação onde o Técnico altera o estado de um chamado (ex: "Em Análise" para "Em Execução"), acionando os gatilhos de registro automático no histórico do sistema.
 
 ---
 
@@ -203,26 +202,26 @@ Metodologia Ágil (Scrum simplificado):
 
 Duração total: até junho
 
-Fevereiro:
+**Fevereiro:**
 - Levantamento de requisitos
-- Modelagem do banco
+- Modelagem do banco e criação de Diagramas
 - Prototipagem no Figma
 
-Março:
+**Março:**
 - Configuração do ambiente
 - Implementação da autenticação
 - Estrutura inicial da API
 
-Abril:
+**Abril:**
 - Desenvolvimento completo dos chamados
 - Implementação do workflow
 
-Maio:
+**Maio:**
 - Testes
 - Ajustes
 - Implementação do histórico e notificações
 
-Junho:
+**Junho:**
 - Finalização
 - Documentação em Word
 - Entrega e apresentação
@@ -239,6 +238,7 @@ Junho:
 - Trello  
 - Figma  
 - Microsoft Word  
+- Ferramenta de Modelagem UML (Astah, Lucidchart ou similar)
 
 ---
 
@@ -248,8 +248,8 @@ A documentação será elaborada em Word contendo:
 
 - Descrição do projeto  
 - Requisitos funcionais e não funcionais  
+- Diagrama de Classes e de Sequência  
 - Diagrama de banco de dados  
-- Diagrama de casos de uso  
 - Fluxo do sistema  
 - Manual de instalação  
 - Manual de uso  
