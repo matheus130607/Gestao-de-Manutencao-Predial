@@ -13,7 +13,7 @@
 
 
 
-## 🏢 Situação Problema
+**Situação Problema**
 
 O SENAI enfrenta diariamente centenas de solicitações de manutenção predial, variando entre problemas simples (lâmpadas queimadas) até ocorrências complexas (falhas hidráulicas e estruturais).
 
@@ -28,8 +28,7 @@ Diante desse cenário, surge o **PredialFix**, uma plataforma de gestão de cham
 
 ---
 
-**![MuaKissGIF](https://github.com/user-attachments/assets/f5aa39fd-e010-41e6-bb3f-3df5b7c801da)
-Objetivo do Projeto**
+**Objetivo do Projeto**
 
 Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 
@@ -42,6 +41,8 @@ Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 ---
 
 **Documentação**
+A documentação no [milanote](SPRINT 1 - 20/02/2026 e 25/02/2026
+Documentação | Requisitos)
 
 **Levantamentos de Requisitos**
 
