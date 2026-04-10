@@ -66,7 +66,6 @@ Com base nesses protótipos, são feitas melhorias contínuas a partir de testes
 
 Nesta etapa, são aplicadas metodologias ágeis para organizar o desenvolvimento do projeto, utilizando o Scrum. O trabalho é dividido em ciclos curtos, chamados Sprints, permitindo entregas contínuas e melhorias ao longo do processo.
 
-Com isso, as atividades são planejadas e executadas de forma estruturada, garantindo melhor controle, adaptação a mudanças e evolução constante do sistema até a entrega final.
 ---
 
 **Diagramas**
