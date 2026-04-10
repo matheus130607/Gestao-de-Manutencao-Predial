@@ -41,8 +41,7 @@ Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 ---
 
 **Documentação**
-A documentação no [milanote](SPRINT 1 - 20/02/2026 e 25/02/2026
-Documentação | Requisitos)
+A documentação no [milanote](https://app.milanote.com/1W16VB1KbEQ34x?p=iRUzxTpROXh)
 
 **Levantamentos de Requisitos**
 
