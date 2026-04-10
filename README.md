@@ -28,7 +28,8 @@ Diante desse cenário, surge o **PredialFix**, uma plataforma de gestão de cham
 
 ---
 
-# 🎯 Objetivo do Projeto
+**![MuaKissGIF](https://github.com/user-attachments/assets/f5aa39fd-e010-41e6-bb3f-3df5b7c801da)
+Objetivo do Projeto**
 
 Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 
@@ -40,13 +41,13 @@ Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 
 ---
 
-Documentação
+**Documentação**
 
-Levantamentos de Requisitos
+**Levantamentos de Requisitos**
 
 
 **Prototipagem**
 
-Metodologia ágeis
+**Metodologia ágeis**
 
-Diagramas
+**Diagramas**
