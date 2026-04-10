@@ -41,10 +41,12 @@ Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 ---
 
 **Documentação**
+
 A documentação no [milanote](https://app.milanote.com/1W16VB1KbEQ34x?p=iRUzxTpROXh)
 
 **Levantamentos de Requisitos**
 
+Nesta etapa do projeto, foi realizado o levantamento de requisitos, considerando as necessidades atuais do sistema. Foram analisados aspectos importantes como funcionalidade, confiabilidade, desempenho e segurança das informações.
 
 **Prototipagem**
 
