@@ -46,20 +46,31 @@ A documentação no [milanote](https://app.milanote.com/1W16VB1KbEQ34x?p=iRUzxTp
 
 ---
 
-
 **Levantamentos de Requisitos**
 
-Nesta etapa do projeto, foi realizado o levantamento de requisitos, considerando as necessidades atuais do sistema. Foram analisados aspectos importantes como funcionalidade, confiabilidade, desempenho e segurança das informações.
+Nesta etapa, foi realizado o levantamento de requisitos com base nas necessidades do sistema, considerando aspectos como funcionalidade, desempenho e segurança.
+
+O objetivo é identificar e organizar os requisitos funcionais e não funcionais, garantindo uma solução eficiente, mais ágil e transparente para os usuários.
+
 ---
 
 **Prototipagem**
+
+Nesta etapa, é definida a interface inicial da plataforma por meio da criação de protótipos. Essa fase permite visualizar o design, a organização das informações e a navegação do sistema.
+
+Com base nesses protótipos, são feitas melhorias contínuas a partir de testes e análises, garantindo uma base mais sólida para o desenvolvimento final. Esse processo ajuda a reduzir erros, alinhar expectativas e assegurar que a solução atenda às necessidades dos usuários.
 
 ---
 
 **Metodologia ágeis**
 
+Nesta etapa, são aplicadas metodologias ágeis para organizar o desenvolvimento do projeto, utilizando o Scrum. O trabalho é dividido em ciclos curtos, chamados Sprints, permitindo entregas contínuas e melhorias ao longo do processo.
+
+Com isso, as atividades são planejadas e executadas de forma estruturada, garantindo melhor controle, adaptação a mudanças e evolução constante do sistema até a entrega final.
 ---
 
 **Diagramas**
+
+Este diagrama representa o fluxo de um sistema de manutenção, desde a abertura do chamado até a sua finalização. O processo envolve a solicitação do usuário, a análise e organização pelo sistema, a execução pela equipe responsável e o registro de todas as etapas até a conclusão.
 
 ---
