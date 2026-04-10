@@ -6,8 +6,8 @@
 
 ## 🔗 Links do Projeto
 
-📌 Protótipo no Figma:  
-https://www.figma.com/design/SQHpUYEEDjRpvFAai5TZEo/Gest%C3%A3o-de-Manuten%C3%A7%C3%A3o-Predial?node-id=0-1&p=f&t=Czhuw3LMMouW7fCQ-0
+📌 [Figma](https://www.figma.com/design/SQHpUYEEDjRpvFAai5TZEo/Gest%C3%A3o-de-Manuten%C3%A7%C3%A3o-Predial?node-id=0-1&p=f&t=Czhuw3LMMouW7fCQ-0)
+
 
 📌 Organização Ágil no Trello:  
 https://trello.com/b/EwVMPQLe/projeto-gestao-de-manutencao-predial
