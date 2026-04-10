@@ -13,7 +13,7 @@
 
 
 
-**Situação Problema**
+✒️ **Situação Problema**
 
 O SENAI enfrenta diariamente centenas de solicitações de manutenção predial, variando entre problemas simples (lâmpadas queimadas) até ocorrências complexas (falhas hidráulicas e estruturais).
 
@@ -28,7 +28,7 @@ Diante desse cenário, surge o **PredialFix**, uma plataforma de gestão de cham
 
 ---
 
-**Objetivo do Projeto**
+🎯 **Objetivo do Projeto**
 
 Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 
@@ -40,13 +40,13 @@ Desenvolver o Back-End do PredialFix utilizando Laravel, responsável por:
 
 ---
 
-**Documentação**
+📃 **Documentação**
 
 A documentação no [milanote](https://app.milanote.com/1W16VB1KbEQ34x?p=iRUzxTpROXh)
 
 ---
 
-**Levantamentos de Requisitos**
+🏷️ **Levantamentos de Requisitos**
 
 Nesta etapa, foi realizado o levantamento de requisitos com base nas necessidades do sistema, considerando aspectos como funcionalidade, desempenho e segurança.
 
@@ -54,7 +54,7 @@ O objetivo é identificar e organizar os requisitos funcionais e não funcionais
 
 ---
 
-**Prototipagem**
+🦾 **Prototipagem**
 
 Nesta etapa, é definida a interface inicial da plataforma por meio da criação de protótipos. Essa fase permite visualizar o design, a organização das informações e a navegação do sistema.
 
@@ -62,13 +62,13 @@ Com base nesses protótipos, são feitas melhorias contínuas a partir de testes
 
 ---
 
-**Metodologia ágeis**
+📖 **Metodologia ágeis**
 
 Nesta etapa, são aplicadas metodologias ágeis para organizar o desenvolvimento do projeto, utilizando o Scrum. O trabalho é dividido em ciclos curtos, chamados Sprints, permitindo entregas contínuas e melhorias ao longo do processo.
 
 ---
 
-**Diagramas**
+📝 **Diagramas**
 
 Este diagrama representa o fluxo de um sistema de manutenção, desde a abertura do chamado até a sua finalização. O processo envolve a solicitação do usuário, a análise e organização pelo sistema, a execução pela equipe responsável e o registro de todas as etapas até a conclusão.
 
