@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('cpf')->unique()->nullable();
+            $table->string('telefone')->nullable();
+            $table->string('cargo')->default('admin');
+            $table->boolean('ativo')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });
