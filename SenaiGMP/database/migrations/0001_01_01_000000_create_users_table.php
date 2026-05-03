@@ -18,9 +18,11 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('cpf')->unique()->nullable();
+            $table->string('nif')->unique()->nullable(); 
             $table->string('telefone')->nullable();
             $table->string('cargo')->default('admin');
             $table->boolean('ativo')->default(true);
+            $table->string('foto_perfil')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
