@@ -164,8 +164,14 @@ class UserResource extends Resource
     }
 
     // Filtra para a aba de Administradores mostrar apenas os admins
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        return parent::getEloquentQuery()->where('cargo', 'admin');
-    }
+   // Filtra para a aba de Administradores mostrar todos os cargos administrativos
+public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+{
+    return parent::getEloquentQuery()->whereIn('cargo', [
+        'admin', 
+        'diretor', 
+        'professor', 
+        'suporte'
+    ]);
+}
 }

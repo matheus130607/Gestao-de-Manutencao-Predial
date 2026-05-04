@@ -38,7 +38,7 @@ class ResponsavelResource extends Resource
             ->schema([
                 Section::make('Dados do Responsável')
                     ->schema([
-                        // Alterado para "Avatar" aqui
+                        // 1. Avatar no topo
                         FileUpload::make('foto_perfil')
                             ->label('Avatar')
                             ->image()
@@ -49,6 +49,7 @@ class ResponsavelResource extends Resource
                         Hidden::make('cargo')
                             ->default('responsavel'),
 
+                        // 2. Linha 1: Nome e E-mail
                         TextInput::make('name')
                             ->label('Nome Completo')
                             ->required(),
@@ -59,22 +60,19 @@ class ResponsavelResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true),
 
-                        TextInput::make('password')
-                            ->label('Senha')
-                            ->password()
-                            ->revealable()
-                            ->required(fn (string $context): bool => $context === 'create')
-                            ->dehydrated(fn ($state) => filled($state)),
-
+                        // 3. Linha 2: Documentos
                         TextInput::make('cpf')
                             ->label('CPF')
                             ->mask('999.999.999-99')
-                            ->required(),
+                            ->required()
+                            ->unique(ignoreRecord: true),
 
                         TextInput::make('nif')
                             ->label('NIF (Nº de Identificação)')
-                            ->required(),
+                            ->required()
+                            ->unique(ignoreRecord: true),
 
+                        // 4. Linha 3: Contato e Empresa
                         TextInput::make('telefone')
                             ->label('Telefone')
                             ->mask('(99) 99999-9999')
@@ -90,6 +88,16 @@ class ResponsavelResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+
+                        // 5. Linha 4: Senha isolada ocupando a linha inteira
+                        TextInput::make('password')
+                            ->label('Senha')
+                            ->password()
+                            ->revealable()
+                            ->required(fn (string $context): bool => $context === 'create')
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->columnSpanFull(),
+
                     ])->columns(2)
             ]);
     }
@@ -98,7 +106,6 @@ class ResponsavelResource extends Resource
     {
         return $table
             ->columns([
-                // Alterado para "Avatar" na listagem também
                 ImageColumn::make('foto_perfil')
                     ->label('Avatar')
                     ->circular(),
