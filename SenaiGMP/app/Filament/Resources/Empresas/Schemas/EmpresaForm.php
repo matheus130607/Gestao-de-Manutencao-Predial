@@ -1,0 +1,16 @@
+<?php
+
+namespace App\Filament\Resources\Empresas\Schemas;
+
+use Filament\Schemas\Schema;
+
+class EmpresaForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                //
+            ]);
+    }
+}
