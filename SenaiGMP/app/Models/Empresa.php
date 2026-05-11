@@ -2,13 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Empresa extends Model
 {
     use HasFactory;
 
-    // Adicione esta linha para liberar o cadastro
-    protected $fillable = ['nome', 'email', 'cnpj', 'local'];
+    protected $fillable = [
+        'nome',
+        'cnpj',
+        'email',
+        'telefone',
+        'cep',
+        'estado',
+        'cidade',
+        'bairro',
+        'rua',
+        'numero',
+        'complemento'
+    ];
 }
