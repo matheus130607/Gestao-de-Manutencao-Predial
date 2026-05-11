@@ -26,7 +26,8 @@ class User extends Authenticatable implements HasAvatar
         'telefone',   
         'cargo',      
         'ativo',
-        'foto_perfil'      
+        'foto_perfil',
+        'especialidades' 
     ];
 
     /**
@@ -50,6 +51,7 @@ class User extends Authenticatable implements HasAvatar
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'ativo' => 'boolean', 
+            'especialidades' => 'array', 
         ];
     }
 
