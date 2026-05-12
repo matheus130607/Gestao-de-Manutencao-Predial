@@ -28,10 +28,12 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     // Troquei para o ícone de 'usuários' que faz mais sentido
-    protected static ?string $navigationIcon = 'heroicon-o-users'; 
-
+    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationGroup = 'Pessoas';
+    protected static ?int $navigationSort = 1;
     protected static ?string $modelLabel = 'Administrador';
     protected static ?string $pluralModelLabel = 'Administradores';
+    protected static ?string $slug = 'administradores';
 
     public static function form(Form $form): Form
     {
@@ -44,8 +46,10 @@ class UserResource extends Resource
                         FileUpload::make('foto_perfil')
                             ->label('Foto de Perfil')
                             ->image()
-                            ->avatar() // Deixa o upload redondo
+                            ->avatar()
                             ->directory('avatares')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->columnSpanFull()
                             ->alignCenter(),
 
@@ -93,7 +97,13 @@ class UserResource extends Resource
                             ->revealable()
                             ->required(fn (string $context): bool => $context === 'create')
                             ->dehydrated(fn ($state) => filled($state))
+                            ->minLength(8)
                             ->maxLength(255)
+                            ->rules(['regex:/[A-Z]/', 'regex:/[0-9]/'])
+                            ->validationMessages([
+                                'min' => 'A senha deve ter no mínimo 8 caracteres.',
+                                'regex' => 'A senha deve conter ao menos uma letra maiúscula e um número.',
+                            ])
                             ->columnSpanFull(),
                     ])
                     ->columns(2) // Coloca os campos lado a lado
@@ -103,6 +113,7 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 // <-- COLUNA DE FOTO ADICIONADA AQUI -->
                 ImageColumn::make('foto_perfil')

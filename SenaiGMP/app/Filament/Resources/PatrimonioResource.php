@@ -19,6 +19,7 @@ use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
 
@@ -27,8 +28,11 @@ class PatrimonioResource extends Resource
     protected static ?string $model = Patrimonio::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
-    protected static ?string $modelLabel = 'Património';
-    protected static ?string $pluralModelLabel = 'Patrimónios';
+    protected static ?string $navigationGroup = 'Infraestrutura';
+    protected static ?int $navigationSort = 2;
+    protected static ?string $modelLabel = 'Patrimônio';
+    protected static ?string $pluralModelLabel = 'Patrimônios';
+    protected static ?string $slug = 'patrimonios';
 
     public static function form(Form $form): Form
     {
@@ -43,11 +47,13 @@ class PatrimonioResource extends Resource
 
                         DatePicker::make('data_aquisicao')
                             ->label('Data de Aquisição')
-                            ->displayFormat('d/m/Y'),
+                            ->displayFormat('d/m/Y')
+                            ->maxDate(now()),
 
                         TextInput::make('valor')
                             ->label('Valor')
                             ->numeric()
+                            ->minValue(0)
                             ->prefix('R$'),
 
                         Select::make('setor_id')
@@ -61,6 +67,8 @@ class PatrimonioResource extends Resource
                             ->label('Foto')
                             ->image()
                             ->directory('patrimonios-imagens')
+                            ->maxSize(4096)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->imageEditor()
                             ->columnSpanFull(),
                     ])->columns(2)
@@ -70,6 +78,7 @@ class PatrimonioResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 ImageColumn::make('imagem')
                     ->label('Fotografia')
@@ -99,6 +108,7 @@ class PatrimonioResource extends Resource
                 //
             ])
             ->actions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->bulkActions([
@@ -118,6 +128,7 @@ class PatrimonioResource extends Resource
         return [
             'index' => Pages\ListPatrimonios::route('/'),
             'create' => Pages\CreatePatrimonio::route('/create'),
+            'view' => Pages\ViewPatrimonio::route('/{record}'),
             'edit' => Pages\EditPatrimonio::route('/{record}/edit'),
         ];
     }

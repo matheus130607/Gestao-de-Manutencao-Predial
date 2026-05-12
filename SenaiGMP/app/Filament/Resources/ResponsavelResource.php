@@ -21,6 +21,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn; 
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
 
@@ -28,9 +29,12 @@ class ResponsavelResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-identification'; 
+    protected static ?string $navigationIcon = 'heroicon-o-identification';
+    protected static ?string $navigationGroup = 'Pessoas';
+    protected static ?int $navigationSort = 3;
     protected static ?string $modelLabel = 'Responsável';
     protected static ?string $pluralModelLabel = 'Responsáveis';
+    protected static ?string $slug = 'responsaveis';
 
     public static function form(Form $form): Form
     {
@@ -42,8 +46,10 @@ class ResponsavelResource extends Resource
                         FileUpload::make('foto_perfil')
                             ->label('Avatar')
                             ->image()
-                            ->avatar() 
+                            ->avatar()
                             ->directory('perfil-usuarios')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->columnSpanFull(),
 
                         Hidden::make('cargo')
@@ -96,6 +102,13 @@ class ResponsavelResource extends Resource
                             ->revealable()
                             ->required(fn (string $context): bool => $context === 'create')
                             ->dehydrated(fn ($state) => filled($state))
+                            ->minLength(8)
+                            ->maxLength(255)
+                            ->rules(['regex:/[A-Z]/', 'regex:/[0-9]/'])
+                            ->validationMessages([
+                                'min' => 'A senha deve ter no mínimo 8 caracteres.',
+                                'regex' => 'A senha deve conter ao menos uma letra maiúscula e um número.',
+                            ])
                             ->columnSpanFull(),
 
                     ])->columns(2)
@@ -105,6 +118,7 @@ class ResponsavelResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 ImageColumn::make('foto_perfil')
                     ->label('Avatar')
@@ -125,6 +139,7 @@ class ResponsavelResource extends Resource
                     ->label('Empresa'),
             ])
             ->actions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->bulkActions([
@@ -144,6 +159,7 @@ class ResponsavelResource extends Resource
         return [
             'index' => Pages\ListResponsavels::route('/'),
             'create' => Pages\CreateResponsavel::route('/create'),
+            'view' => Pages\ViewResponsavel::route('/{record}'),
             'edit' => Pages\EditResponsavel::route('/{record}/edit'),
         ];
     }

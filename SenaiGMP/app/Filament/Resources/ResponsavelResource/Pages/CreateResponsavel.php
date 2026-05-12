@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateResponsavel extends CreateRecord
 {
     protected static string $resource = ResponsavelResource::class;
+
+    protected function getCreatedNotificationTitle(): ?string
+    {
+        return 'Responsável criado com sucesso!';
+    }
 }

@@ -4,21 +4,16 @@ namespace App\Filament\Resources\ResponsavelResource\Pages;
 
 use App\Filament\Resources\ResponsavelResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use Filament\Resources\Pages\ViewRecord;
 
-class EditResponsavel extends EditRecord
+class ViewResponsavel extends ViewRecord
 {
     protected static string $resource = ResponsavelResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\EditAction::make(),
         ];
-    }
-
-    protected function getSavedNotificationTitle(): ?string
-    {
-        return 'Responsável atualizado com sucesso!';
     }
 }

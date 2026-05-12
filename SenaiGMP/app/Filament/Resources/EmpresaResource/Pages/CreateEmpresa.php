@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateEmpresa extends CreateRecord
 {
     protected static string $resource = EmpresaResource::class;
+
+    protected function getCreatedNotificationTitle(): ?string
+    {
+        return 'Empresa cadastrada com sucesso!';
+    }
 }

@@ -16,6 +16,7 @@ use Filament\Forms\Components\Select;
 // Componentes de Tabela
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
 
@@ -24,8 +25,11 @@ class SetorResource extends Resource
     protected static ?string $model = Setor::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-map'; // Ícone de mapa/localização
+    protected static ?string $navigationGroup = 'Infraestrutura';
+    protected static ?int $navigationSort = 1;
     protected static ?string $modelLabel = 'Setor';
     protected static ?string $pluralModelLabel = 'Setores';
+    protected static ?string $slug = 'setores';
 
     public static function form(Form $form): Form
     {
@@ -62,6 +66,7 @@ class SetorResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('nome')
                     ->label('Setor/Sala')
@@ -82,6 +87,7 @@ class SetorResource extends Resource
                 //
             ])
             ->actions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->bulkActions([
@@ -101,6 +107,7 @@ class SetorResource extends Resource
         return [
             'index' => Pages\ListSetors::route('/'),
             'create' => Pages\CreateSetor::route('/create'),
+            'view' => Pages\ViewSetor::route('/{record}'),
             'edit' => Pages\EditSetor::route('/{record}/edit'),
         ];
     }

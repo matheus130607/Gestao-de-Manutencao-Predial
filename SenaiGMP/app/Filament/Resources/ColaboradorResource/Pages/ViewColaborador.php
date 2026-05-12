@@ -4,14 +4,16 @@ namespace App\Filament\Resources\ColaboradorResource\Pages;
 
 use App\Filament\Resources\ColaboradorResource;
 use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\ViewRecord;
 
-class CreateColaborador extends CreateRecord
+class ViewColaborador extends ViewRecord
 {
     protected static string $resource = ColaboradorResource::class;
 
-    protected function getCreatedNotificationTitle(): ?string
+    protected function getHeaderActions(): array
     {
-        return 'Colaborador criado com sucesso!';
+        return [
+            Actions\EditAction::make(),
+        ];
     }
 }

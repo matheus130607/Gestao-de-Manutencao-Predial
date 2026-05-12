@@ -27,6 +27,7 @@ class EmpresaResource extends Resource
     protected static ?string $model = Empresa::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+    protected static ?string $navigationGroup = 'Empresas';
     protected static ?string $modelLabel = 'Empresa';
     protected static ?string $pluralModelLabel = 'Empresas';
 
@@ -124,6 +125,7 @@ class EmpresaResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('nome')
                     ->label('Empresa')

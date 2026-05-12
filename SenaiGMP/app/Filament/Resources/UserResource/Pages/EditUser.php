@@ -16,4 +16,9 @@ class EditUser extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function getSavedNotificationTitle(): ?string
+    {
+        return 'Administrador atualizado com sucesso!';
+    }
 }

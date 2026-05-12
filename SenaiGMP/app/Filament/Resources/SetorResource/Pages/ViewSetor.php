@@ -4,14 +4,16 @@ namespace App\Filament\Resources\SetorResource\Pages;
 
 use App\Filament\Resources\SetorResource;
 use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\ViewRecord;
 
-class CreateSetor extends CreateRecord
+class ViewSetor extends ViewRecord
 {
     protected static string $resource = SetorResource::class;
 
-    protected function getCreatedNotificationTitle(): ?string
+    protected function getHeaderActions(): array
     {
-        return 'Setor criado com sucesso!';
+        return [
+            Actions\EditAction::make(),
+        ];
     }
 }

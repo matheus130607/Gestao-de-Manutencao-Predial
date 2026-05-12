@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\laragon\\\\www\\\\Gestao-de-Manutencao-Predial\\\\SenaiGMP\" -Directory)",
+      "Bash(Select-Object Name)"
+    ]
+  }
+}

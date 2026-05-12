@@ -18,15 +18,19 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\CheckboxList; // Novo componente
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Columns\BadgeColumn; // Para mostrar as especialidades bonitas na tabela
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Filters\SelectFilter;
 
 class ColaboradorResource extends Resource
 {
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationGroup = 'Pessoas';
+    protected static ?int $navigationSort = 2;
     protected static ?string $modelLabel = 'Colaborador';
     protected static ?string $pluralModelLabel = 'Colaboradores';
+    protected static ?string $slug = 'colaboradores';
 
     public static function form(Form $form): Form
     {
@@ -36,8 +40,11 @@ class ColaboradorResource extends Resource
                     ->schema([
                         FileUpload::make('foto_perfil')
                             ->label('Avatar')
-                            ->image()->avatar()
+                            ->image()
+                            ->avatar()
                             ->directory('perfil-usuarios')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->columnSpanFull(),
 
                         Hidden::make('cargo')->default('colaborador'),
@@ -78,9 +85,17 @@ class ColaboradorResource extends Resource
 
                         TextInput::make('password')
                             ->label('Senha')
-                            ->password()->revealable()
+                            ->password()
+                            ->revealable()
                             ->required(fn ($context) => $context === 'create')
                             ->dehydrated(fn ($state) => filled($state))
+                            ->minLength(8)
+                            ->maxLength(255)
+                            ->rules(['regex:/[A-Z]/', 'regex:/[0-9]/'])
+                            ->validationMessages([
+                                'min' => 'A senha deve ter no mínimo 8 caracteres.',
+                                'regex' => 'A senha deve conter ao menos uma letra maiúscula e um número.',
+                            ])
                             ->columnSpanFull(),
                     ])->columns(2)
             ]);
@@ -89,6 +104,7 @@ class ColaboradorResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 ImageColumn::make('foto_perfil')->label('Avatar')->circular(),
                 TextColumn::make('name')->label('Nome')->searchable(),
@@ -102,7 +118,24 @@ class ColaboradorResource extends Resource
 
                 TextColumn::make('empresa.nome')->label('Empresa'),
             ])
-            ->actions([EditAction::make()]);
+            ->filters([
+                SelectFilter::make('especialidades')
+                    ->label('Especialidade')
+                    ->options([
+                        'hidraulica'    => 'Hidráulica',
+                        'eletrica'      => 'Elétrica',
+                        'alvenaria'     => 'Alvenaria/Pedreiro',
+                        'pintura'       => 'Pintura',
+                        'ar_condicionado' => 'Ar Condicionado',
+                        'marcenaria'    => 'Marcenaria',
+                        'serralheria'   => 'Serralheria',
+                    ])
+                    ->query(fn ($query, $data) => $data['value']
+                        ? $query->whereJsonContains('especialidades', $data['value'])
+                        : $query
+                    ),
+            ])
+            ->actions([ViewAction::make(), EditAction::make()]);
     }
 
     public static function getEloquentQuery(): Builder
@@ -115,6 +148,7 @@ class ColaboradorResource extends Resource
         return [
             'index' => Pages\ListColaboradors::route('/'),
             'create' => Pages\CreateColaborador::route('/create'),
+            'view' => Pages\ViewColaborador::route('/{record}'),
             'edit' => Pages\EditColaborador::route('/{record}/edit'),
         ];
     }

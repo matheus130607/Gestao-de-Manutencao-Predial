@@ -4,14 +4,16 @@ namespace App\Filament\Resources\PatrimonioResource\Pages;
 
 use App\Filament\Resources\PatrimonioResource;
 use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\ViewRecord;
 
-class CreatePatrimonio extends CreateRecord
+class ViewPatrimonio extends ViewRecord
 {
     protected static string $resource = PatrimonioResource::class;
 
-    protected function getCreatedNotificationTitle(): ?string
+    protected function getHeaderActions(): array
     {
-        return 'Patrimônio cadastrado com sucesso!';
+        return [
+            Actions\EditAction::make(),
+        ];
     }
 }

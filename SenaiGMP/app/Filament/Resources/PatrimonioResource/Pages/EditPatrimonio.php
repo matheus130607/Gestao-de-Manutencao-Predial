@@ -16,4 +16,9 @@ class EditPatrimonio extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function getSavedNotificationTitle(): ?string
+    {
+        return 'Patrimônio atualizado com sucesso!';
+    }
 }
