@@ -26,6 +26,12 @@ use Filament\Tables\Actions\DeleteBulkAction;
 
 class ResponsavelResource extends Resource
 {
+    public static function canViewAny(): bool
+{
+    // Apenas Admin e Responsável podem ver este menu
+    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
+}
+
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-identification'; 

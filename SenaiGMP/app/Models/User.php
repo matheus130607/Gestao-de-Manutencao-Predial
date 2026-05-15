@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+// Imports necessários para o Filament e Permissões
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Support\Facades\Storage; 
 
-class User extends Authenticatable implements HasAvatar
+class User extends Authenticatable implements HasAvatar, FilamentUser
 {
     use HasFactory, Notifiable;
 
@@ -27,7 +29,8 @@ class User extends Authenticatable implements HasAvatar
         'cargo',      
         'ativo',
         'foto_perfil',
-        'especialidades' 
+        'especialidades',
+        'setor_id'
     ];
 
     /**
@@ -55,6 +58,16 @@ class User extends Authenticatable implements HasAvatar
         ];
     }
 
+    /**
+     * Regra de Acesso ao Painel
+     * Bloqueia qualquer usuário que estiver com 'ativo' = false
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Só entra se estiver ativo
+        return (bool) $this->ativo;
+    }
+
     public function getFilamentAvatarUrl(): ?string
     {
         return $this->foto_perfil ? Storage::url($this->foto_perfil) : null;
@@ -63,5 +76,10 @@ class User extends Authenticatable implements HasAvatar
     public function empresa()
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function setor()
+    {
+        return $this->belongsTo(Setor::class);
     }
 }

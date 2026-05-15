@@ -24,6 +24,12 @@ use Filament\Forms\Set;
 
 class EmpresaResource extends Resource
 {
+    public static function canViewAny(): bool
+{
+    // Apenas Admin e Responsável podem ver este menu
+    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
+}
+
     protected static ?string $model = Empresa::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';

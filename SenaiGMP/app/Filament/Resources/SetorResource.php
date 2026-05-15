@@ -21,6 +21,13 @@ use Filament\Tables\Actions\DeleteBulkAction;
 
 class SetorResource extends Resource
 {
+
+    public static function canViewAny(): bool
+{
+    // Apenas Admin e Responsável podem ver este menu
+    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
+}
+
     protected static ?string $model = Setor::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-map'; // Ícone de mapa/localização
@@ -52,6 +59,7 @@ class SetorResource extends Resource
                                 'B' => 'Bloco B',
                                 'C' => 'Bloco C',
                                 'D' => 'Bloco D',
+                                'outro' => 'Outro'
                             ])
                             ->required()
                             ->native(false), // Deixa o visual mais moderno
