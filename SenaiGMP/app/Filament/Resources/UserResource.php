@@ -25,6 +25,13 @@ use Filament\Tables\Actions\DeleteBulkAction;
 
 class UserResource extends Resource
 {
+    public static function canViewAny(): bool
+{
+    // Apenas Admin e Responsável podem ver este menu
+    return in_array(auth()->user()->cargo, ['admin']);
+}
+
+
     protected static ?string $model = User::class;
 
     // Troquei para o ícone de 'usuários' que faz mais sentido
