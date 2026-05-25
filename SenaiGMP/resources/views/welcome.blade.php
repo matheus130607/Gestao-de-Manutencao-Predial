@@ -1,11 +1,17 @@
-{{-- resources/views/filament/pages/welcome.blade.php --}}
+{{-- resources/views/welcome.blade.php --}}
 {{--
     SENAI · Página Institucional — Filament Custom Page
     Versão adaptada para Laravel 11 + Filament 3.3
 --}}
 
-<x-filament-panels::page>
-    @push('styles')
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SENAI - Segurança e Facilities</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -715,7 +721,8 @@
             scroll-behavior: smooth;
         }
     </style>
-    @endpush
+</head>
+<body>
 
     <div class="senai-page">
 
@@ -1000,4 +1007,5 @@
         </footer>
 
     </div>
-</x-filament-panels::page>
+</body>
+</html>
