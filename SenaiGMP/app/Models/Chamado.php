@@ -9,7 +9,7 @@ class Chamado extends Model
 {
     protected $fillable = [
         'user_id', 'setor_id', 'patrimonio_id', 
-        'prioridade', 'imagem', 'observacao', 'status'
+        'prioridade', 'tipo', 'imagem', 'observacao', 'status'
     ];
 
     public function responsavel(): BelongsTo {
