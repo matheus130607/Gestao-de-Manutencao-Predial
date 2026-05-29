@@ -4,96 +4,101 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ChamadoResource\Pages;
 use App\Models\Chamado;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables\Table;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\FileUpload;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\SelectColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ChamadoResource extends Resource
 {
     protected static ?string $model = Chamado::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+
     protected static ?string $modelLabel = 'Chamado';
+
+    protected static ?string $pluralModelLabel = 'Chamados';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Abertura de Chamado')
-                    ->description('Preencha os detalhes da manutenção')
+                Section::make('Abertura de chamado')
+                    ->description('Preencha os detalhes da manutenção e defina a prioridade operacional.')
                     ->schema([
-                        // Responsável (Filtra apenas quem é "responsavel")
                         Select::make('user_id')
                             ->label('Responsável')
-                            ->relationship('responsavel', 'name', fn ($query) => $query->where('cargo', 'responsavel'))
-                            // Se o logado for responsável, já vem selecionado, senão fica vazio.
+                            ->relationship('responsavel', 'name', fn (Builder $query) => $query->where('cargo', 'responsavel'))
                             ->default(fn () => auth()->user()?->cargo === 'responsavel' ? auth()->id() : null)
                             ->searchable()
                             ->preload()
                             ->required(),
 
-                        // 2. Setor (Escolha manual)
                         Select::make('setor_id')
-                            ->label('Setor')
-                            ->relationship('setor', 'nome') // Ajuste para 'codigo' se for o caso
+                            ->label('Setor solicitante')
+                            ->relationship('setor', 'nome')
                             ->searchable()
                             ->preload()
                             ->required(),
 
-                        // Patrimônio
                         Select::make('patrimonio_id')
                             ->label('Patrimônio')
                             ->relationship('patrimonio', 'codigo')
-                            ->helperText(fn ($get) => $get('patrimonio_id') ? "ID do bem selecionado" : null)
                             ->searchable()
                             ->preload()
                             ->required(),
 
                         Select::make('tipo')
-                            ->label('Tipo de Manutenção')
-                            ->options([
-                                'hidraulica' => 'Hidráulica',
-                                'eletrica' => 'Elétrica',
-                                'alvenaria' => 'Alvenaria/Pedreiro',
-                                'pintura' => 'Pintura',
-                                'ar_condicionado' => 'Ar Condicionado',
-                                'marcenaria' => 'Marcenaria',
-                                'serralheria' => 'Serralheria',
-                            ])
+                            ->label('Tipo de manutenção')
+                            ->options(Chamado::tipoOptions())
+                            ->searchable()
+                            ->native(false)
                             ->required(),
 
-                        // Prioridade com Cores
                         Select::make('prioridade')
-                            ->label('Nível de Prioridade')
-                            ->options([
-                                'baixa' => 'Baixa',
-                                'media' => 'Média',
-                                'alta' => 'Alta',
-                                'emergencia' => '🚨 EMERGÊNCIA',
-                            ])
-                            ->required()
+                            ->label('Nível de prioridade')
+                            ->options(Chamado::prioridadeOptions())
+                            ->native(false)
+                            ->required(),
+
+                        DatePicker::make('prazo')
+                            ->label('Prazo')
+                            ->displayFormat('d/m/Y')
                             ->native(false),
 
-                        // Observação
+                        Select::make('status')
+                            ->label('Status')
+                            ->options(Chamado::statusOptions())
+                            ->default(Chamado::STATUS_ABERTO)
+                            ->native(false)
+                            ->required()
+                            ->hiddenOn('create'),
+
                         Textarea::make('observacao')
-                            ->label('O que aconteceu?')
+                            ->label('Descrição do problema')
                             ->placeholder('Descreva o problema detalhadamente...')
                             ->required()
                             ->columnSpanFull(),
 
-                        // Upload de Imagem
                         FileUpload::make('imagem')
-                            ->label('Foto do Problema')
+                            ->label('Foto do problema')
                             ->image()
                             ->directory('chamados')
                             ->columnSpanFull(),
-                    ])->columns(2)
+                    ])
+                    ->columns(2),
             ]);
     }
 
@@ -101,37 +106,154 @@ class ChamadoResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')->label('ID')->sortable(),
-                
+                TextColumn::make('id')
+                    ->label('#')
+                    ->sortable(),
+
                 ImageColumn::make('imagem')
                     ->label('Foto')
                     ->square(),
 
-                TextColumn::make('prioridade')
+                TextColumn::make('tipo')
+                    ->label('Tipo')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'baixa' => 'gray',
-                        'media' => 'info',
-                        'alta' => 'warning',
-                        'emergencia' => 'danger',
+                    ->color('gray')
+                    ->formatStateUsing(fn (?string $state): string => Chamado::tipoOptions()[$state] ?? 'Não informado')
+                    ->searchable(),
+
+                TextColumn::make('setor.nome')
+                    ->label('Setor')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('responsavel.name')
+                    ->label('Responsável')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('prioridade')
+                    ->label('Prioridade')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => Chamado::prioridadeOptions()[$state] ?? 'Não informada')
+                    ->color(fn (?string $state): string => match ($state) {
+                        Chamado::PRIORIDADE_BAIXA => 'gray',
+                        Chamado::PRIORIDADE_MEDIA => 'info',
+                        Chamado::PRIORIDADE_ALTA => 'warning',
+                        Chamado::PRIORIDADE_EMERGENCIA => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable(),
+
+                SelectColumn::make('status')
+                    ->label('Status')
+                    ->options(Chamado::statusOptions())
+                    ->selectablePlaceholder(false)
+                    ->disabled(fn (Chamado $record): bool => auth()->user()?->cannot('update', $record) ?? true)
+                    ->updateStateUsing(fn (Chamado $record, string $state): string => $record->atualizarStatusOperacional($state)),
+
+                TextColumn::make('prazo')
+                    ->label('Prazo')
+                    ->date('d/m/Y')
+                    ->placeholder('Sem prazo')
+                    ->color(fn (Chamado $record): string => $record->isAtrasado() ? 'danger' : 'gray')
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->label('Aberto em')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+
+                TextColumn::make('observacao')
+                    ->label('Descrição')
+                    ->limit(48)
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options(Chamado::statusOptions())
+                    ->native(false),
+
+                SelectFilter::make('prioridade')
+                    ->label('Prioridade')
+                    ->options(Chamado::prioridadeOptions())
+                    ->native(false),
+
+                SelectFilter::make('tipo')
+                    ->label('Tipo')
+                    ->options(Chamado::tipoOptions())
+                    ->searchable()
+                    ->native(false),
+
+                SelectFilter::make('setor_id')
+                    ->label('Setor')
+                    ->relationship('setor', 'nome')
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
+                SelectFilter::make('user_id')
+                    ->label('Responsável')
+                    ->relationship('responsavel', 'name', fn (Builder $query) => $query->where('cargo', 'responsavel'))
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
+                TernaryFilter::make('atraso')
+                    ->label('Prazo')
+                    ->placeholder('Todos')
+                    ->trueLabel('Atrasados')
+                    ->falseLabel('Dentro do prazo')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->atrasados(),
+                        false: fn (Builder $query): Builder => $query
+                            ->ativos()
+                            ->whereNotNull('prazo')
+                            ->whereDate('prazo', '>=', now()->toDateString()),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
+
+                Filter::make('abertura')
+                    ->label('Data de abertura')
+                    ->form([
+                        DatePicker::make('de')
+                            ->label('De')
+                            ->displayFormat('d/m/Y')
+                            ->native(false),
+                        DatePicker::make('ate')
+                            ->label('Até')
+                            ->displayFormat('d/m/Y')
+                            ->native(false),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when($data['de'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '>=', $date))
+                        ->when($data['ate'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '<=', $date))),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('iniciar')
+                    ->label('Executar')
+                    ->icon('heroicon-m-play')
+                    ->color('warning')
+                    ->visible(fn (Chamado $record): bool => $record->podeIniciar() && (auth()->user()?->can('update', $record) ?? false))
+                    ->action(function (Chamado $record): void {
+                        $record->atualizarStatusOperacional(Chamado::STATUS_EM_ANDAMENTO);
                     }),
 
-                TextColumn::make('responsavel.name')->label('Responsável'),
-                TextColumn::make('setor.nome')->label('Setor'),
-                TextColumn::make('patrimonio.nome')->label('Patrimônio'),
-                
-                // Status que pode ser alterado direto na tabela
-                SelectColumn::make('status')
-                    ->options([
-                        'aberto' => 'Aberto',
-                        'em_andamento' => 'Em Andamento',
-                        'concluido' => 'Concluído',
-                    ]),
+                Tables\Actions\Action::make('concluir')
+                    ->label('Concluir')
+                    ->icon('heroicon-m-check')
+                    ->color('success')
+                    ->visible(fn (Chamado $record): bool => $record->podeConcluir() && (auth()->user()?->can('update', $record) ?? false))
+                    ->action(function (Chamado $record): void {
+                        $record->atualizarStatusOperacional(Chamado::STATUS_CONCLUIDO);
+                    }),
+
+                Tables\Actions\EditAction::make(),
             ])
-            ->filters([])
-            ->actions([
-                \Filament\Tables\Actions\EditAction::make(),
-            ]);
+            ->defaultSort('created_at', 'desc')
+            ->emptyStateHeading('Nenhum chamado cadastrado')
+            ->emptyStateDescription('Quando houver solicitações de manutenção, elas aparecerão aqui.');
     }
 
     public static function getPages(): array

@@ -9,56 +9,43 @@ class ChamadosPorPrioridade extends ChartWidget
 {
     protected static ?string $heading = 'Prioridade dos ativos';
 
-    protected static ?string $description = 'Chamados ainda não concluídos por nível de urgência';
+    protected static ?string $description = 'Distribuição dos chamados ainda não finalizados';
 
     protected static ?int $sort = 4;
 
     protected static ?string $pollingInterval = '30s';
 
     protected int | string | array $columnSpan = [
+        'default' => 'full',
         'md' => 1,
-        'xl' => 1,
+        'xl' => 2,
     ];
 
     protected static ?string $maxHeight = '320px';
 
     protected static ?array $options = [
-        'indexAxis' => 'y',
         'plugins' => [
             'legend' => [
-                'display' => false,
-            ],
-        ],
-        'scales' => [
-            'x' => [
-                'beginAtZero' => true,
-                'ticks' => [
-                    'precision' => 0,
-                ],
+                'position' => 'bottom',
             ],
         ],
         'maintainAspectRatio' => false,
+        'cutout' => '62%',
     ];
 
     protected function getData(): array
     {
-        $prioridades = [
-            'baixa' => 'Baixa',
-            'media' => 'Média',
-            'alta' => 'Alta',
-            'emergencia' => 'Emergência',
-        ];
+        $prioridades = Chamado::prioridadeOptions();
 
         $rows = Chamado::query()
+            ->ativos()
             ->selectRaw('prioridade, COUNT(*) as total')
-            ->where('status', '!=', 'concluido')
             ->groupBy('prioridade')
             ->pluck('total', 'prioridade');
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Chamados',
                     'data' => collect(array_keys($prioridades))
                         ->map(fn (string $prioridade) => (int) ($rows[$prioridade] ?? 0))
                         ->all(),
@@ -69,7 +56,6 @@ class ChamadosPorPrioridade extends ChartWidget
                         '#dc2626',
                     ],
                     'borderWidth' => 0,
-                    'borderRadius' => 6,
                 ],
             ],
             'labels' => array_values($prioridades),
@@ -78,6 +64,6 @@ class ChamadosPorPrioridade extends ChartWidget
 
     protected function getType(): string
     {
-        return 'bar';
+        return 'doughnut';
     }
 }
