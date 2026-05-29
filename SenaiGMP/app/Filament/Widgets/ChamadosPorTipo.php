@@ -5,13 +5,13 @@ namespace App\Filament\Widgets;
 use App\Models\Chamado;
 use Filament\Widgets\ChartWidget;
 
-class ChamadosPorSetor extends ChartWidget
+class ChamadosPorTipo extends ChartWidget
 {
-    protected static ?string $heading = 'Demandas por setor';
+    protected static ?string $heading = 'Tipos mais recorrentes';
 
-    protected static ?string $description = 'Setores solicitantes com maior volume de chamados';
+    protected static ?string $description = 'Categorias de manutenção com maior incidência';
 
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 5;
 
     protected static ?string $pollingInterval = '30s';
 
@@ -43,25 +43,32 @@ class ChamadosPorSetor extends ChartWidget
 
     protected function getData(): array
     {
+        $labels = Chamado::tipoOptions();
+
         $rows = Chamado::query()
-            ->leftJoin('setors', 'chamados.setor_id', '=', 'setors.id')
-            ->selectRaw("COALESCE(setors.nome, 'Sem setor') as setor, COUNT(*) as total")
-            ->groupByRaw("COALESCE(setors.nome, 'Sem setor')")
+            ->selectRaw("COALESCE(tipo, 'sem_tipo') as tipo, COUNT(*) as total")
+            ->groupByRaw("COALESCE(tipo, 'sem_tipo')")
             ->orderByDesc('total')
             ->limit(8)
-            ->get();
+            ->pluck('total', 'tipo');
 
         return [
             'datasets' => [
                 [
                     'label' => 'Chamados',
-                    'data' => $rows->pluck('total')->map(fn ($total) => (int) $total)->all(),
-                    'backgroundColor' => '#2563eb',
+                    'data' => $rows
+                        ->map(fn ($total) => (int) $total)
+                        ->values()
+                        ->all(),
+                    'backgroundColor' => '#0891b2',
                     'borderWidth' => 0,
                     'borderRadius' => 6,
                 ],
             ],
-            'labels' => $rows->pluck('setor')->all(),
+            'labels' => $rows
+                ->keys()
+                ->map(fn (string $tipo): string => $labels[$tipo] ?? 'Não informado')
+                ->all(),
         ];
     }
 

@@ -5,13 +5,13 @@ namespace App\Filament\Widgets;
 use App\Models\Chamado;
 use Filament\Widgets\ChartWidget;
 
-class ChamadosPorSetor extends ChartWidget
+class ChamadosPorResponsavel extends ChartWidget
 {
-    protected static ?string $heading = 'Demandas por setor';
+    protected static ?string $heading = 'Carga por responsável';
 
-    protected static ?string $description = 'Setores solicitantes com maior volume de chamados';
+    protected static ?string $description = 'Chamados ativos distribuídos entre responsáveis';
 
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 6;
 
     protected static ?string $pollingInterval = '30s';
 
@@ -44,9 +44,10 @@ class ChamadosPorSetor extends ChartWidget
     protected function getData(): array
     {
         $rows = Chamado::query()
-            ->leftJoin('setors', 'chamados.setor_id', '=', 'setors.id')
-            ->selectRaw("COALESCE(setors.nome, 'Sem setor') as setor, COUNT(*) as total")
-            ->groupByRaw("COALESCE(setors.nome, 'Sem setor')")
+            ->ativos()
+            ->leftJoin('users', 'chamados.user_id', '=', 'users.id')
+            ->selectRaw("COALESCE(users.name, 'Não atribuído') as responsavel, COUNT(*) as total")
+            ->groupByRaw("COALESCE(users.name, 'Não atribuído')")
             ->orderByDesc('total')
             ->limit(8)
             ->get();
@@ -54,14 +55,14 @@ class ChamadosPorSetor extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Chamados',
+                    'label' => 'Chamados ativos',
                     'data' => $rows->pluck('total')->map(fn ($total) => (int) $total)->all(),
-                    'backgroundColor' => '#2563eb',
+                    'backgroundColor' => '#7c3aed',
                     'borderWidth' => 0,
                     'borderRadius' => 6,
                 ],
             ],
-            'labels' => $rows->pluck('setor')->all(),
+            'labels' => $rows->pluck('responsavel')->all(),
         ];
     }
 
