@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Move-Item \"resources/views/welcome.blade.php\" \"resources/views/welcome.blade.php.bak\" -Force)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(php artisan *)"
+    ]
+  }
+}
