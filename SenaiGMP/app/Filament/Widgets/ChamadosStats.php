@@ -12,17 +12,30 @@ class ChamadosStats extends BaseWidget
 
     protected static ?string $pollingInterval = '30s';
 
+    protected ?string $heading = 'Indicadores operacionais';
+
+    protected ?string $description = 'Resumo do volume, urgência, prazos e desempenho de conclusão.';
+
     protected function getStats(): array
     {
-        $abertos = Chamado::query()->where('status', 'aberto')->count();
-        $andamento = Chamado::query()->where('status', 'em_andamento')->count();
-        $concluidosMes = Chamado::query()
-            ->where('status', 'concluido')
-            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
-            ->count();
+        $abertos = Chamado::query()->where('status', Chamado::STATUS_ABERTO)->count();
+        $andamento = Chamado::query()->where('status', Chamado::STATUS_EM_ANDAMENTO)->count();
+        $atrasados = Chamado::query()->atrasados()->count();
         $criticos = Chamado::query()
-            ->whereIn('prioridade', ['alta', 'emergencia'])
-            ->where('status', '!=', 'concluido')
+            ->ativos()
+            ->whereIn('prioridade', Chamado::prioridadesCriticas())
+            ->count();
+        $concluidosMes = Chamado::query()
+            ->where('status', Chamado::STATUS_CONCLUIDO)
+            ->where(function ($query): void {
+                $query
+                    ->whereBetween('concluido_em', [now()->startOfMonth(), now()->endOfMonth()])
+                    ->orWhere(function ($query): void {
+                        $query
+                            ->whereNull('concluido_em')
+                            ->whereBetween('updated_at', [now()->startOfMonth(), now()->endOfMonth()]);
+                    });
+            })
             ->count();
 
         return [
@@ -30,46 +43,92 @@ class ChamadosStats extends BaseWidget
                 ->description('Aguardando primeira ação')
                 ->descriptionIcon('heroicon-m-bell-alert')
                 ->color($abertos > 0 ? 'danger' : 'success')
-                ->chart($this->dailyCounts(status: 'aberto')),
+                ->chart($this->dailyCounts(status: Chamado::STATUS_ABERTO)),
 
             Stat::make('Em andamento', $andamento)
                 ->description('Execução em curso')
                 ->descriptionIcon('heroicon-m-wrench-screwdriver')
                 ->color('warning')
-                ->chart($this->dailyCounts(status: 'em_andamento')),
+                ->chart($this->dailyCounts(status: Chamado::STATUS_EM_ANDAMENTO)),
 
             Stat::make('Concluídos no mês', $concluidosMes)
                 ->description('Demandas finalizadas')
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->color('success')
-                ->chart($this->dailyCounts(status: 'concluido')),
+                ->chart($this->dailyCounts(status: Chamado::STATUS_CONCLUIDO)),
 
             Stat::make('Críticos ativos', $criticos)
                 ->description('Alta prioridade ou emergência')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color($criticos > 0 ? 'danger' : 'gray')
-                ->chart($this->dailyCounts(prioridades: ['alta', 'emergencia'], onlyActive: true)),
+                ->chart($this->dailyCounts(prioridades: Chamado::prioridadesCriticas(), onlyActive: true)),
+
+            Stat::make('Atrasados', $atrasados)
+                ->description('Ativos fora do prazo')
+                ->descriptionIcon('heroicon-m-clock')
+                ->color($atrasados > 0 ? 'danger' : 'success')
+                ->chart($this->dailyCounts(onlyOverdue: true)),
+
+            Stat::make('Tempo médio', $this->averageCompletionLabel())
+                ->description('Conclusão dos últimos 90 dias')
+                ->descriptionIcon('heroicon-m-arrow-trending-down')
+                ->color('info'),
         ];
     }
 
     /**
      * @return array<int, int>
      */
-    private function dailyCounts(?string $status = null, array $prioridades = [], bool $onlyActive = false): array
-    {
+    private function dailyCounts(
+        ?string $status = null,
+        array $prioridades = [],
+        bool $onlyActive = false,
+        bool $onlyOverdue = false,
+    ): array {
         $start = now()->subDays(6)->startOfDay();
 
         return collect(range(0, 6))
-            ->map(function (int $day) use ($start, $status, $prioridades, $onlyActive): int {
+            ->map(function (int $day) use ($start, $status, $prioridades, $onlyActive, $onlyOverdue): int {
                 $date = $start->copy()->addDays($day)->toDateString();
 
                 return Chamado::query()
                     ->when($status, fn ($query) => $query->where('status', $status))
                     ->when($prioridades !== [], fn ($query) => $query->whereIn('prioridade', $prioridades))
-                    ->when($onlyActive, fn ($query) => $query->where('status', '!=', 'concluido'))
+                    ->when($onlyActive, fn ($query) => $query->ativos())
+                    ->when($onlyOverdue, fn ($query) => $query->atrasados())
                     ->whereDate('created_at', $date)
                     ->count();
             })
             ->all();
+    }
+
+    private function averageCompletionLabel(): string
+    {
+        $durations = Chamado::query()
+            ->where('status', Chamado::STATUS_CONCLUIDO)
+            ->whereDate('created_at', '>=', now()->subDays(90)->toDateString())
+            ->get(['created_at', 'updated_at', 'concluido_em'])
+            ->map(function (Chamado $chamado): ?float {
+                $finishedAt = $chamado->concluido_em ?? $chamado->updated_at;
+
+                if (! $finishedAt || ! $chamado->created_at) {
+                    return null;
+                }
+
+                return $chamado->created_at->diffInMinutes($finishedAt) / 60;
+            })
+            ->filter();
+
+        if ($durations->isEmpty()) {
+            return 'Sem dados';
+        }
+
+        $hours = (float) $durations->avg();
+
+        if ($hours >= 24) {
+            return number_format($hours / 24, 1, ',', '.') . ' dias';
+        }
+
+        return number_format($hours, 1, ',', '.') . ' h';
     }
 }

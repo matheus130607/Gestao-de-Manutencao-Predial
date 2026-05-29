@@ -7,17 +7,18 @@ use Filament\Widgets\ChartWidget;
 
 class ChamadosEvolucao extends ChartWidget
 {
-    protected static ?string $heading = 'Evolução dos chamados';
+    protected static ?string $heading = 'Evolução operacional';
 
-    protected static ?string $description = 'Abertos, em execução e concluídos ao longo do período';
+    protected static ?string $description = 'Aberturas, início de execução e conclusões no período selecionado';
 
     protected static ?int $sort = 2;
 
     protected static ?string $pollingInterval = '30s';
 
     protected int | string | array $columnSpan = [
+        'default' => 'full',
         'md' => 2,
-        'xl' => 2,
+        'xl' => 4,
     ];
 
     protected static ?string $maxHeight = '320px';
@@ -62,38 +63,62 @@ class ChamadosEvolucao extends ChartWidget
         $period = collect(range(0, $days - 1))
             ->map(fn (int $day) => $start->copy()->addDays($day));
 
-        $rows = Chamado::query()
-            ->selectRaw('DATE(created_at) as date, status, COUNT(*) as total')
+        $abertos = Chamado::query()
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
             ->whereDate('created_at', '>=', $start->toDateString())
-            ->groupByRaw('DATE(created_at), status')
-            ->get()
-            ->keyBy(fn ($row) => "{$row->date}|{$row->status}");
+            ->groupByRaw('DATE(created_at)')
+            ->pluck('total', 'date');
+
+        $iniciados = Chamado::query()
+            ->selectRaw('DATE(iniciado_em) as date, COUNT(*) as total')
+            ->whereNotNull('iniciado_em')
+            ->whereDate('iniciado_em', '>=', $start->toDateString())
+            ->groupByRaw('DATE(iniciado_em)')
+            ->pluck('total', 'date');
+
+        $concluidos = Chamado::query()
+            ->selectRaw('DATE(COALESCE(concluido_em, updated_at)) as date, COUNT(*) as total')
+            ->where('status', Chamado::STATUS_CONCLUIDO)
+            ->where(function ($query) use ($start): void {
+                $query
+                    ->whereDate('concluido_em', '>=', $start->toDateString())
+                    ->orWhere(function ($query) use ($start): void {
+                        $query
+                            ->whereNull('concluido_em')
+                            ->whereDate('updated_at', '>=', $start->toDateString());
+                    });
+            })
+            ->groupByRaw('DATE(COALESCE(concluido_em, updated_at))')
+            ->pluck('total', 'date');
 
         return [
             'datasets' => [
                 [
                     'label' => 'Abertos',
-                    'data' => $this->seriesFor($period, $rows, 'aberto'),
+                    'data' => $this->seriesFor($period, $abertos),
                     'borderColor' => '#dc2626',
-                    'backgroundColor' => 'rgba(220, 38, 38, .12)',
+                    'backgroundColor' => 'rgba(220, 38, 38, .10)',
                     'tension' => .35,
                     'fill' => true,
+                    'pointRadius' => 2,
                 ],
                 [
-                    'label' => 'Em andamento',
-                    'data' => $this->seriesFor($period, $rows, 'em_andamento'),
+                    'label' => 'Iniciados',
+                    'data' => $this->seriesFor($period, $iniciados),
                     'borderColor' => '#f59e0b',
-                    'backgroundColor' => 'rgba(245, 158, 11, .12)',
+                    'backgroundColor' => 'rgba(245, 158, 11, .10)',
                     'tension' => .35,
                     'fill' => true,
+                    'pointRadius' => 2,
                 ],
                 [
                     'label' => 'Concluídos',
-                    'data' => $this->seriesFor($period, $rows, 'concluido'),
+                    'data' => $this->seriesFor($period, $concluidos),
                     'borderColor' => '#16a34a',
-                    'backgroundColor' => 'rgba(22, 163, 74, .12)',
+                    'backgroundColor' => 'rgba(22, 163, 74, .10)',
                     'tension' => .35,
                     'fill' => true,
+                    'pointRadius' => 2,
                 ],
             ],
             'labels' => $period
@@ -107,14 +132,10 @@ class ChamadosEvolucao extends ChartWidget
         return 'line';
     }
 
-    private function seriesFor($period, $rows, string $status): array
+    private function seriesFor($period, $rows): array
     {
         return $period
-            ->map(function ($date) use ($rows, $status): int {
-                $key = "{$date->toDateString()}|{$status}";
-
-                return (int) ($rows->get($key)->total ?? 0);
-            })
+            ->map(fn ($date): int => (int) ($rows[$date->toDateString()] ?? 0))
             ->all();
     }
 }
