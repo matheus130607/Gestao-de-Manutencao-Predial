@@ -179,7 +179,11 @@
         </div>
 
         {{-- LADO DIREITO: painel branco com formulário --}}
-        <div class="gmp-login-form-panel flex w-full items-center justify-center px-6 py-12 lg:w-1/10">
+        <div class="gmp-login-form-panel relative flex w-full items-center justify-center px-6 py-12 lg:w-1/10">
+            <a href="{{ url('/') }}" class="absolute top-6 left-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                Voltar à página inicial
+            </a>
             <div class="w-full max-w-sm">
                 {{ $slot }}
             </div>
