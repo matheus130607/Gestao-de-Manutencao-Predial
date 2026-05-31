@@ -16,4 +16,22 @@ class EditColaborador extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        $this->sincronizarEspecialidades();
+    }
+
+    private function sincronizarEspecialidades(): void
+    {
+        $selecionadas = $this->form->getRawState()['especialidades_selecionadas'] ?? [];
+        $record = $this->getRecord();
+
+        $record->especialidadesRelacao()->delete();
+        foreach ($selecionadas as $especialidade) {
+            $record->especialidadesRelacao()->create([
+                'especialidade' => $especialidade,
+            ]);
+        }
+    }
 }

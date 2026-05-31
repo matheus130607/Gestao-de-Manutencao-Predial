@@ -34,7 +34,9 @@ class ResponsavelResource extends Resource
 
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-identification'; 
+    protected static ?string $navigationIcon = 'heroicon-o-identification';
+    protected static ?string $navigationGroup = 'Administração';
+    protected static ?int $navigationSort = 2;
     protected static ?string $modelLabel = 'Responsável';
     protected static ?string $pluralModelLabel = 'Responsáveis';
 

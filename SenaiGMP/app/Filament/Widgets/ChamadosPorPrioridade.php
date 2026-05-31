@@ -11,7 +11,7 @@ class ChamadosPorPrioridade extends ChartWidget
 
     protected static ?string $description = 'Distribuição dos chamados ainda não finalizados';
 
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 3;
 
     protected static ?string $pollingInterval = '30s';
 

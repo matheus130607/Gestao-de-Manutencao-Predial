@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ChamadosRecentes extends BaseWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 8;
 
     protected int | string | array $columnSpan = 'full';
 
@@ -31,7 +31,7 @@ class ChamadosRecentes extends BaseWidget
                     ->label('Tipo')
                     ->badge()
                     ->color('gray')
-                    ->formatStateUsing(fn (?string $state): string => $this->formatTipo($state))
+                    ->formatStateUsing(fn (?string $state): string => Chamado::tipoOptions()[$state] ?? 'Não informado')
                     ->placeholder('Não informado'),
 
                 Tables\Columns\TextColumn::make('setor.nome')
@@ -86,20 +86,6 @@ class ChamadosRecentes extends BaseWidget
         return Chamado::query()
             ->with(['setor', 'responsavel'])
             ->latest();
-    }
-
-    private function formatTipo(?string $state): string
-    {
-        return match ($state) {
-            'hidraulica' => 'Hidráulica',
-            'eletrica' => 'Elétrica',
-            'alvenaria' => 'Alvenaria',
-            'pintura' => 'Pintura',
-            'ar_condicionado' => 'Ar condicionado',
-            'marcenaria' => 'Marcenaria',
-            'serralheria' => 'Serralheria',
-            default => 'Não informado',
-        };
     }
 
     private function formatPrioridade(?string $state): string

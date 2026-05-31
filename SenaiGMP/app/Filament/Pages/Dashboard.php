@@ -8,6 +8,7 @@ use App\Filament\Widgets\ChamadosPorPrioridade;
 use App\Filament\Widgets\ChamadosPorResponsavel;
 use App\Filament\Widgets\ChamadosPorSetor;
 use App\Filament\Widgets\ChamadosPorTipo;
+use App\Filament\Widgets\ChamadosRecentes;
 use App\Filament\Widgets\ChamadosStats;
 use App\Filament\Widgets\RankingSetoresChamados;
 use App\Models\Chamado;
@@ -94,11 +95,12 @@ class Dashboard extends BaseDashboard
         return [
             ChamadosStats::class,
             ChamadosEvolucao::class,
-            ChamadosPorSetor::class,
             ChamadosPorPrioridade::class,
+            ChamadosPorSetor::class,
             ChamadosPorTipo::class,
             ChamadosPorResponsavel::class,
             RankingSetoresChamados::class,
+            ChamadosRecentes::class,
         ];
     }
 
@@ -273,6 +275,12 @@ class Dashboard extends BaseDashboard
                 'color' => 'danger',
             ],
             [
+                'label' => 'Atrasados',
+                'value' => Chamado::query()->atrasados()->count(),
+                'icon' => 'heroicon-m-clock',
+                'color' => 'warning',
+            ],
+            [
                 'label' => 'Abertos',
                 'value' => Chamado::query()
                     ->where('status', Chamado::STATUS_ABERTO)
@@ -286,12 +294,6 @@ class Dashboard extends BaseDashboard
                     ->where('status', Chamado::STATUS_EM_ANDAMENTO)
                     ->count(),
                 'icon' => 'heroicon-m-wrench-screwdriver',
-                'color' => 'warning',
-            ],
-            [
-                'label' => 'Atrasados',
-                'value' => Chamado::query()->atrasados()->count(),
-                'icon' => 'heroicon-m-clock',
                 'color' => 'warning',
             ],
             [

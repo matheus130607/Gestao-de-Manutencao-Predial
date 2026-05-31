@@ -60,7 +60,7 @@ class ChamadosPorTipo extends ChartWidget
                         ->map(fn ($total) => (int) $total)
                         ->values()
                         ->all(),
-                    'backgroundColor' => '#0891b2',
+                    'backgroundColor' => '#2563eb',
                     'borderWidth' => 0,
                     'borderRadius' => 6,
                 ],

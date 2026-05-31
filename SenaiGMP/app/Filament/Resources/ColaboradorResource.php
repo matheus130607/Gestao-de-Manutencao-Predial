@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ColaboradorResource\Pages;
+use App\Models\Chamado;
 use App\Models\User;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -31,6 +32,8 @@ public static function canViewAny(): bool
 }
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationGroup = 'Cadastros';
+    protected static ?int $navigationSort = 1;
     protected static ?string $modelLabel = 'Colaborador';
     protected static ?string $pluralModelLabel = 'Colaboradores';
 
@@ -66,21 +69,20 @@ public static function canViewAny(): bool
                             ->searchable()->preload()->required()
                             ->columnSpanFull(),
 
-                        // --- CAMPO DE ESPECIALIDADES ---
-                        CheckboxList::make('especialidades')
+                        CheckboxList::make('especialidades_selecionadas')
                             ->label('Especialidades / Habilidades')
-                            ->options([
-                                'hidraulica' => 'Hidráulica',
-                                'eletrica' => 'Elétrica',
-                                'alvenaria' => 'Alvenaria/Pedreiro',
-                                'pintura' => 'Pintura',
-                                'ar_condicionado' => 'Ar Condicionado',
-                                'marcenaria' => 'Marcenaria',
-                                'serralheria' => 'Serralheria',
-                            ])
-                            ->columns(3) // Organiza as opções em 3 colunas
+                            ->options(Chamado::tipoOptions())
+                            ->columns(3)
                             ->gridDirection('row')
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->afterStateHydrated(function (CheckboxList $component, ?User $record) {
+                                if ($record) {
+                                    $component->state(
+                                        $record->especialidadesRelacao()->pluck('especialidade')->toArray()
+                                    );
+                                }
+                            })
+                            ->dehydrated(false),
 
                         TextInput::make('password')
                             ->label('Senha')
@@ -99,11 +101,9 @@ public static function canViewAny(): bool
                 ImageColumn::make('foto_perfil')->label('Avatar')->circular(),
                 TextColumn::make('name')->label('Nome')->searchable(),
                 
-                // Mostra as especialidades como "Badges" (etiquetas) na tabela
-                TextColumn::make('especialidades')
+                TextColumn::make('especialidadesRelacao.especialidade')
                     ->label('Especialidades')
                     ->badge()
-                    ->separator(',') // Como é um array, ele separa por vírgula para mostrar
                     ->color('info'),
 
                 TextColumn::make('empresa.nome')->label('Empresa'),

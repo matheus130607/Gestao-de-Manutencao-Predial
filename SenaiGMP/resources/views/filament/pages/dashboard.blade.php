@@ -50,27 +50,40 @@
                 @endforeach
             </x-filament::grid>
 
-            <div class="space-y-4">
-                {{ $this->form }}
-
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ $chamados->total() }} chamado{{ $chamados->total() === 1 ? '' : 's' }} encontrado{{ $chamados->total() === 1 ? '' : 's' }}
+            <details class="rounded-lg bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+                <summary class="cursor-pointer select-none px-5 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between gap-2 list-none">
+                    <span class="flex items-center gap-2">
+                        <x-filament::icon icon="heroicon-m-funnel" class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        Filtros avançados
                         @if ($appliedFilters > 0)
-                            com {{ $appliedFilters }} filtro{{ $appliedFilters === 1 ? '' : 's' }} ativo{{ $appliedFilters === 1 ? '' : 's' }}
+                            <x-filament::badge color="primary">{{ $appliedFilters }} ativo{{ $appliedFilters === 1 ? '' : 's' }}</x-filament::badge>
                         @endif
-                    </p>
+                    </span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500">clique para expandir</span>
+                </summary>
 
-                    <x-filament::button
-                        color="gray"
-                        icon="heroicon-m-x-mark"
-                        size="sm"
-                        wire:click="limparFiltros"
-                    >
-                        Limpar filtros
-                    </x-filament::button>
+                <div class="border-t border-gray-200 px-5 pb-5 pt-4 dark:border-white/10 space-y-4">
+                    {{ $this->form }}
+
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ $chamados->total() }} chamado{{ $chamados->total() === 1 ? '' : 's' }} encontrado{{ $chamados->total() === 1 ? '' : 's' }}
+                            @if ($appliedFilters > 0)
+                                com {{ $appliedFilters }} filtro{{ $appliedFilters === 1 ? '' : 's' }} ativo{{ $appliedFilters === 1 ? '' : 's' }}
+                            @endif
+                        </p>
+
+                        <x-filament::button
+                            color="gray"
+                            icon="heroicon-m-x-mark"
+                            size="sm"
+                            wire:click="limparFiltros"
+                        >
+                            Limpar filtros
+                        </x-filament::button>
+                    </div>
                 </div>
-            </div>
+            </details>
 
             @if ($chamados->isEmpty())
                 <x-filament::section>

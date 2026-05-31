@@ -14,7 +14,7 @@ class RankingSetoresChamados extends Widget
     protected int | string | array $columnSpan = [
         'default' => 'full',
         'md' => 2,
-        'xl' => 2,
+        'xl' => 4,
     ];
 
     /**

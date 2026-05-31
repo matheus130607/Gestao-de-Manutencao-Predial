@@ -26,6 +26,8 @@ class ChamadoResource extends Resource
     protected static ?string $model = Chamado::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+    protected static ?string $navigationGroup = 'Operação';
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'Chamado';
 

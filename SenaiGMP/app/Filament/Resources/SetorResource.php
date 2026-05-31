@@ -30,7 +30,9 @@ class SetorResource extends Resource
 
     protected static ?string $model = Setor::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-map'; // Ícone de mapa/localização
+    protected static ?string $navigationIcon = 'heroicon-o-map';
+    protected static ?string $navigationGroup = 'Cadastros';
+    protected static ?int $navigationSort = 3;
     protected static ?string $modelLabel = 'Setor';
     protected static ?string $pluralModelLabel = 'Setores';
 
