@@ -36,7 +36,14 @@ class AdminPanelProvider extends PanelProvider
                 'gray' => Color::Slate,
             ])
             ->darkMode()
-            ->sidebarCollapsibleOnDesktop()
+            ->renderHook(
+                'panels::body.start',
+                fn (): string => '
+                    <div id="sidebar-hover-trigger" aria-hidden="true"></div>
+                    <link rel="stylesheet" href="' . asset('css/filament/sidebar.css') . '">
+                    <script defer src="' . asset('js/filament/sidebar.js') . '"></script>
+                '
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
