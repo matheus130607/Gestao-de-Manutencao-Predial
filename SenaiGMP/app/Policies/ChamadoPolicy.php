@@ -46,12 +46,12 @@ class ChamadoPolicy
         if (!$user->ativo) return false;
 
         // Admin e Responsável podem editar qualquer chamado
-        if (in_array($user->cargo, ['admin', 'responsavel'])) {
+        if (in_array($user->cargo, User::cargosGestao())) {
             return true;
         }
 
         // Colaborador: apenas o próprio e se não estiver concluído
-        return $user->id === $chamado->user_id && $chamado->status !== 'concluido';
+        return $user->id === $chamado->user_id && $chamado->status !== Chamado::STATUS_CONCLUIDO;
     }
 
     /**

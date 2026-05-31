@@ -82,4 +82,9 @@ class User extends Authenticatable implements HasAvatar, FilamentUser
     {
         return $this->belongsTo(Setor::class);
     }
+
+    public static function cargosGestao(): array
+    {
+        return ['admin', 'responsavel'];
+    }
 }
