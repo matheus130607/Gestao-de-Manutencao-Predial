@@ -34,6 +34,8 @@ class PatrimonioResource extends Resource
     protected static ?string $model = Patrimonio::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
+    protected static ?string $navigationGroup = 'Cadastros';
+    protected static ?int $navigationSort = 4;
     protected static ?string $modelLabel = 'Património';
     protected static ?string $pluralModelLabel = 'Patrimónios';
 

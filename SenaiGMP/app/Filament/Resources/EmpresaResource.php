@@ -33,6 +33,8 @@ class EmpresaResource extends Resource
     protected static ?string $model = Empresa::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+    protected static ?string $navigationGroup = 'Cadastros';
+    protected static ?int $navigationSort = 2;
     protected static ?string $modelLabel = 'Empresa';
     protected static ?string $pluralModelLabel = 'Empresas';
 

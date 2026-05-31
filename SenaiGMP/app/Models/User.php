@@ -29,7 +29,6 @@ class User extends Authenticatable implements HasAvatar, FilamentUser
         'cargo',      
         'ativo',
         'foto_perfil',
-        'especialidades',
         'setor_id'
     ];
 
@@ -53,8 +52,7 @@ class User extends Authenticatable implements HasAvatar, FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'ativo' => 'boolean', 
-            'especialidades' => 'array', 
+            'ativo' => 'boolean',
         ];
     }
 
@@ -81,6 +79,11 @@ class User extends Authenticatable implements HasAvatar, FilamentUser
     public function setor()
     {
         return $this->belongsTo(Setor::class);
+    }
+
+    public function especialidadesRelacao(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ColaboradorEspecialidade::class);
     }
 
     public static function cargosGestao(): array

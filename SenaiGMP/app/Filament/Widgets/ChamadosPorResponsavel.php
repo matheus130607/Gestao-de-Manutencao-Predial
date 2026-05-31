@@ -57,7 +57,7 @@ class ChamadosPorResponsavel extends ChartWidget
                 [
                     'label' => 'Chamados ativos',
                     'data' => $rows->pluck('total')->map(fn ($total) => (int) $total)->all(),
-                    'backgroundColor' => '#7c3aed',
+                    'backgroundColor' => '#2563eb',
                     'borderWidth' => 0,
                     'borderRadius' => 6,
                 ],

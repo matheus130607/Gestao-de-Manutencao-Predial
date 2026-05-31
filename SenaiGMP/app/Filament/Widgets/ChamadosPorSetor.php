@@ -11,7 +11,7 @@ class ChamadosPorSetor extends ChartWidget
 
     protected static ?string $description = 'Setores solicitantes com maior volume de chamados';
 
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
 
     protected static ?string $pollingInterval = '30s';
 

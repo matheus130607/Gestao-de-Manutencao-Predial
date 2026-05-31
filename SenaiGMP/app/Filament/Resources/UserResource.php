@@ -35,7 +35,9 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     // Troquei para o ícone de 'usuários' que faz mais sentido
-    protected static ?string $navigationIcon = 'heroicon-o-users'; 
+    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationGroup = 'Administração';
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'Administrador';
     protected static ?string $pluralModelLabel = 'Administradores';
