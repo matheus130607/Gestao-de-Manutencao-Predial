@@ -28,7 +28,7 @@ class UserResource extends Resource
     public static function canViewAny(): bool
 {
     // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()->cargo, ['admin']);
+    return in_array(auth()->user()?->cargo, ['admin']);
 }
 
 

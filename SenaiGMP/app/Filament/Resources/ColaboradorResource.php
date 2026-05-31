@@ -27,7 +27,7 @@ class ColaboradorResource extends Resource
 public static function canViewAny(): bool
 {
     // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
+    return in_array(auth()->user()?->cargo, User::cargosGestao());
 }
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
