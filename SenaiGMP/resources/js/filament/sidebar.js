@@ -1,74 +1,76 @@
 /**
- * Sidebar hover — SenaiGMP
+ * Sidebar toggle - SenaiGMP
  */
-document.addEventListener('DOMContentLoaded', function () {
-    const CHAVE_FIXADA = 'senai-sidebar-fixed';
-    const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
+(function () {
+    const OPEN_CLASS = 'senai-sidebar-open';
+    const LOGO_TOGGLE_SELECTOR = '#senai-sidebar-logo-toggle';
+    const DESKTOP_QUERY = '(min-width: 1024px)';
 
-    const sidebar = document.querySelector('.fi-sidebar');
-    const trigger = document.getElementById('sidebar-hover-trigger');
+    const isDesktop = () => window.matchMedia(DESKTOP_QUERY).matches;
 
-    if (!sidebar || !trigger) return;
-
-    // Botão dentro da sidebar (não no body)
-    const pinBtn = document.createElement('button');
-    pinBtn.id = 'sidebar-pin-btn';
-    pinBtn.setAttribute('aria-label', 'Fixar ou soltar menu');
-    pinBtn.innerHTML = `
-        <span class="pin-icone">📌</span>
-        <span class="pin-texto">Fixar menu</span>
-    `;
-    // Inserir no topo da sidebar, antes do primeiro filho
-    sidebar.insertBefore(pinBtn, sidebar.firstChild);
-
-    let fixada = localStorage.getItem(CHAVE_FIXADA) === 'true';
-    let hoverAtivo = false;
-
-    function aplicarEstado() {
-        if (fixada) {
-            sidebar.classList.add('sidebar-fixada');
-            sidebar.classList.remove('sidebar-aberta');
-            document.body.classList.add('sidebar-esta-fixada');
-            pinBtn.classList.add('ativo');
-            pinBtn.querySelector('.pin-texto').textContent = 'Soltar menu';
-        } else {
-            sidebar.classList.remove('sidebar-fixada');
-            document.body.classList.remove('sidebar-esta-fixada');
-            pinBtn.classList.remove('ativo');
-            pinBtn.querySelector('.pin-texto').textContent = 'Fixar menu';
-            if (!hoverAtivo) {
-                sidebar.classList.remove('sidebar-aberta');
-            }
+    function getSidebarStore() {
+        if (!window.Alpine || typeof window.Alpine.store !== 'function') {
+            return null;
         }
+
+        return window.Alpine.store('sidebar');
     }
 
-    aplicarEstado();
+    function updateLogoState(isOpen) {
+        document.querySelectorAll(LOGO_TOGGLE_SELECTOR).forEach((button) => {
+            button.setAttribute('aria-expanded', String(isOpen));
+            button.classList.toggle('is-active', isOpen);
+        });
+    }
 
-    trigger.addEventListener('mouseenter', function () {
-        if (!isDesktop() || fixada) return;
-        hoverAtivo = true;
-        sidebar.classList.add('sidebar-aberta');
-    });
+    function setSidebarOpen(isOpen) {
+        const sidebarStore = getSidebarStore();
 
-    sidebar.addEventListener('mouseleave', function () {
-        if (!isDesktop() || fixada) return;
-        hoverAtivo = false;
-        sidebar.classList.remove('sidebar-aberta');
-        aplicarEstado();
-    });
-
-    pinBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        fixada = !fixada;
-        localStorage.setItem(CHAVE_FIXADA, fixada);
-        aplicarEstado();
-    });
-
-    window.addEventListener('resize', function () {
-        if (!isDesktop()) {
-            hoverAtivo = false;
-            sidebar.classList.remove('sidebar-aberta', 'sidebar-fixada');
-            document.body.classList.remove('sidebar-esta-fixada');
+        if (sidebarStore) {
+            isOpen ? sidebarStore.open() : sidebarStore.close();
         }
+
+        document.body.classList.toggle(OPEN_CLASS, isDesktop() && isOpen);
+        updateLogoState(isOpen);
+    }
+
+    function currentSidebarState() {
+        if (isDesktop()) {
+            return document.body.classList.contains(OPEN_CLASS);
+        }
+
+        return Boolean(getSidebarStore()?.isOpen);
+    }
+
+    function syncAfterNativeChanges() {
+        const isOpen = currentSidebarState();
+
+        document.body.classList.toggle(OPEN_CLASS, isDesktop() && isOpen);
+        updateLogoState(isOpen);
+    }
+
+    document.addEventListener('click', function (event) {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        const toggle = event.target.closest(LOGO_TOGGLE_SELECTOR);
+
+        if (!toggle) {
+            return;
+        }
+
+        event.preventDefault();
+        setSidebarOpen(!currentSidebarState());
     });
-});
+
+    document.addEventListener('DOMContentLoaded', function () {
+        setSidebarOpen(false);
+    });
+
+    document.addEventListener('livewire:navigated', function () {
+        window.requestAnimationFrame(syncAfterNativeChanges);
+    });
+
+    window.addEventListener('resize', syncAfterNativeChanges);
+})();

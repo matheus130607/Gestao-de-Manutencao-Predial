@@ -9,6 +9,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -29,6 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('senai-logo.jpg'))
             ->darkModeBrandLogo(asset('logos_senai_preto.png'))
             ->brandLogoHeight('2.25rem')
+            ->sidebarWidth('17rem')
             ->favicon(asset('favicon.png'))
             ->login(\App\Filament\Pages\Auth\Login::class)
             ->colors([
@@ -37,11 +39,29 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->darkMode()
             ->renderHook(
-                'panels::body.start',
+                PanelsRenderHook::TOPBAR_START,
                 fn (): string => '
-                    <div id="sidebar-hover-trigger" aria-hidden="true"></div>
+                    <button
+                        type="button"
+                        id="senai-sidebar-logo-toggle"
+                        class="senai-topbar-logo"
+                        aria-label="Abrir ou fechar menu lateral"
+                        aria-expanded="false"
+                    >
+                        <img src="' . asset('senai-logo.jpg') . '" alt="SENAI GMP" />
+                    </button>
+                '
+            )
+            ->renderHook(
+                PanelsRenderHook::STYLES_AFTER,
+                fn (): string => '
                     <link rel="stylesheet" href="' . asset('css/filament/sidebar.css') . '">
-                    <script defer src="' . asset('js/filament/sidebar.js') . '"></script>
+                '
+            )
+            ->renderHook(
+                PanelsRenderHook::SCRIPTS_AFTER,
+                fn (): string => '
+                    <script src="' . asset('js/filament/sidebar.js') . '"></script>
                 '
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

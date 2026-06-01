@@ -16,7 +16,6 @@ use App\Models\Setor;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -108,90 +107,90 @@ class Dashboard extends BaseDashboard
     {
         return $form
             ->schema([
-                Section::make('Busca e filtros')
-                    ->description('Refine a fila por status, prioridade, tipo, setor, responsável, abertura e prazo.')
-                    ->schema([
-                        TextInput::make('search')
-                            ->label('Pesquisar')
-                            ->placeholder('ID, descrição, setor, responsável ou patrimônio')
-                            ->prefixIcon('heroicon-m-magnifying-glass')
-                            ->live(debounce: 500),
-
-                        Select::make('status')
-                            ->label('Status')
-                            ->options(Chamado::statusOptions())
-                            ->placeholder('Todos')
-                            ->native(false)
-                            ->live(),
-
-                        Select::make('prioridade')
-                            ->label('Prioridade')
-                            ->options(Chamado::prioridadeOptions())
-                            ->placeholder('Todas')
-                            ->native(false)
-                            ->live(),
-
-                        Select::make('tipo')
-                            ->label('Tipo')
-                            ->options(Chamado::tipoOptions())
-                            ->placeholder('Todos')
-                            ->searchable()
-                            ->native(false)
-                            ->live(),
-
-                        Select::make('setor_id')
-                            ->label('Setor solicitante')
-                            ->options(fn (): array => Setor::query()
-                                ->orderBy('nome')
-                                ->pluck('nome', 'id')
-                                ->all())
-                            ->placeholder('Todos')
-                            ->searchable()
-                            ->preload()
-                            ->native(false)
-                            ->live(),
-
-                        Select::make('responsavel_id')
-                            ->label('Responsável')
-                            ->options(fn (): array => User::query()
-                                ->where('cargo', 'responsavel')
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all())
-                            ->placeholder('Todos')
-                            ->searchable()
-                            ->preload()
-                            ->native(false)
-                            ->live(),
-
-                        DatePicker::make('data_inicio')
-                            ->label('Abertos de')
-                            ->displayFormat('d/m/Y')
-                            ->native(false)
-                            ->live(),
-
-                        DatePicker::make('data_fim')
-                            ->label('Abertos até')
-                            ->displayFormat('d/m/Y')
-                            ->native(false)
-                            ->live(),
-
-                        Select::make('prazo_situacao')
-                            ->label('Prazo')
-                            ->options([
-                                'atrasados' => 'Atrasados',
-                                'dentro_prazo' => 'Dentro do prazo',
-                                'sem_prazo' => 'Sem prazo',
-                            ])
-                            ->placeholder('Todos')
-                            ->native(false)
-                            ->live(),
-                    ])
-                    ->columns([
+                TextInput::make('search')
+                    ->label('Pesquisar')
+                    ->placeholder('ID, descrição, setor, responsável ou patrimônio')
+                    ->prefixIcon('heroicon-m-magnifying-glass')
+                    ->live(debounce: 500)
+                    ->columnSpan([
                         'default' => 1,
-                        'md' => 2,
-                        'xl' => 4,
+                        'xl' => 2,
                     ]),
+
+                Select::make('status')
+                    ->label('Status')
+                    ->options(Chamado::statusOptions())
+                    ->placeholder('Todos')
+                    ->native(false)
+                    ->live(),
+
+                Select::make('prioridade')
+                    ->label('Prioridade')
+                    ->options(Chamado::prioridadeOptions())
+                    ->placeholder('Todas')
+                    ->native(false)
+                    ->live(),
+
+                Select::make('tipo')
+                    ->label('Tipo')
+                    ->options(Chamado::tipoOptions())
+                    ->placeholder('Todos')
+                    ->searchable()
+                    ->native(false)
+                    ->live(),
+
+                Select::make('setor_id')
+                    ->label('Setor solicitante')
+                    ->options(fn (): array => Setor::query()
+                        ->orderBy('nome')
+                        ->pluck('nome', 'id')
+                        ->all())
+                    ->placeholder('Todos')
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->live(),
+
+                Select::make('responsavel_id')
+                    ->label('Responsável')
+                    ->options(fn (): array => User::query()
+                        ->where('cargo', 'responsavel')
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->placeholder('Todos')
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->live(),
+
+                DatePicker::make('data_inicio')
+                    ->label('Abertos de')
+                    ->displayFormat('d/m/Y')
+                    ->native(false)
+                    ->live(),
+
+                DatePicker::make('data_fim')
+                    ->label('Abertos até')
+                    ->displayFormat('d/m/Y')
+                    ->native(false)
+                    ->live(),
+
+                Select::make('prazo_situacao')
+                    ->label('Prazo')
+                    ->options([
+                        'atrasados' => 'Atrasados',
+                        'dentro_prazo' => 'Dentro do prazo',
+                        'sem_prazo' => 'Sem prazo',
+                    ])
+                    ->placeholder('Todos')
+                    ->native(false)
+                    ->live(),
+            ])
+            ->columns([
+                'default' => 1,
+                'md' => 2,
+                'xl' => 4,
             ])
             ->statePath('filters');
     }
@@ -266,7 +265,7 @@ class Dashboard extends BaseDashboard
     {
         return [
             [
-                'label' => 'Emergenciais',
+                'label' => 'Emergências',
                 'value' => Chamado::query()
                     ->ativos()
                     ->where('prioridade', Chamado::PRIORIDADE_EMERGENCIA)
