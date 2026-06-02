@@ -27,7 +27,7 @@ class EmpresaResource extends Resource
     public static function canViewAny(): bool
 {
     // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
+    return in_array(auth()->user()?->cargo, ['admin', 'responsavel']);
 }
 
     protected static ?string $model = Empresa::class;
