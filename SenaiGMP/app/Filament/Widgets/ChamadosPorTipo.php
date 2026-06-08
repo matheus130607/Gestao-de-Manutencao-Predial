@@ -46,6 +46,7 @@ class ChamadosPorTipo extends ChartWidget
         $labels = Chamado::tipoOptions();
 
         $rows = Chamado::query()
+            ->visibleTo(auth()->user())
             ->selectRaw("COALESCE(tipo, 'sem_tipo') as tipo, COUNT(*) as total")
             ->groupByRaw("COALESCE(tipo, 'sem_tipo')")
             ->orderByDesc('total')

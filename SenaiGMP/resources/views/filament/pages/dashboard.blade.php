@@ -118,7 +118,8 @@
                     <div class="senai-call-grid">
                         @foreach ($chamados as $chamado)
                             @php
-                                $canUpdate = auth()->user()?->can('update', $chamado);
+                                $canStart = auth()->user()?->can('iniciar', $chamado);
+                                $canFinish = auth()->user()?->can('concluir', $chamado);
                                 $isAtrasado = $chamado->isAtrasado();
                                 $accentColor = $isAtrasado ? '#dc2626' : $chamado->prioridadeHex();
                             @endphp
@@ -184,6 +185,13 @@
                                         </div>
 
                                         <div>
+                                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Colaborador</dt>
+                                            <dd class="mt-1 truncate text-gray-950 dark:text-white">
+                                                {{ $chamado->colaborador?->name ?? 'Sem executor' }}
+                                            </dd>
+                                        </div>
+
+                                        <div>
                                             <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Abertura</dt>
                                             <dd class="mt-1 text-gray-950 dark:text-white">
                                                 {{ $chamado->created_at?->format('d/m/Y H:i') }}
@@ -191,9 +199,23 @@
                                         </div>
 
                                         <div>
+                                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Início</dt>
+                                            <dd class="mt-1 text-gray-950 dark:text-white">
+                                                {{ $chamado->iniciado_em?->format('d/m/Y H:i') ?? 'Não iniciado' }}
+                                            </dd>
+                                        </div>
+
+                                        <div>
                                             <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Prazo</dt>
                                             <dd class="mt-1 text-gray-950 dark:text-white">
                                                 {{ $chamado->prazo?->format('d/m/Y') ?? 'Sem prazo' }}
+                                            </dd>
+                                        </div>
+
+                                        <div>
+                                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Fechamento</dt>
+                                            <dd class="mt-1 text-gray-950 dark:text-white">
+                                                {{ $chamado->concluido_em?->format('d/m/Y H:i') ?? 'Não concluído' }}
                                             </dd>
                                         </div>
 
@@ -216,25 +238,23 @@
                                             Abrir
                                         </x-filament::button>
 
-                                        @if ($canUpdate && $chamado->podeIniciar())
+                                        @if ($canStart)
                                             <x-filament::button
                                                 color="warning"
                                                 icon="heroicon-m-play"
                                                 size="sm"
-                                                wire:click="executarChamado({{ $chamado->id }})"
-                                                wire:target="executarChamado({{ $chamado->id }})"
+                                                wire:click="mountAction('iniciarChamado', { chamado: {{ $chamado->id }} })"
                                             >
-                                                Executar
+                                                Iniciar chamado
                                             </x-filament::button>
                                         @endif
 
-                                        @if ($canUpdate && $chamado->podeConcluir())
+                                        @if ($canFinish)
                                             <x-filament::button
                                                 color="success"
                                                 icon="heroicon-m-check"
                                                 size="sm"
-                                                wire:click="concluirChamado({{ $chamado->id }})"
-                                                wire:target="concluirChamado({{ $chamado->id }})"
+                                                wire:click="mountAction('concluirChamado', { chamado: {{ $chamado->id }} })"
                                             >
                                                 Concluir
                                             </x-filament::button>

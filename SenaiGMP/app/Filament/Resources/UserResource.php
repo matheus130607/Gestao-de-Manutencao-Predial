@@ -4,43 +4,58 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
-
-// Componentes de Formulário
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\FileUpload; // <-- Adicionado para a foto
-
-// Componentes de Tabela
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\ImageColumn; // <-- Adicionado para a foto
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class UserResource extends Resource
 {
-    public static function canViewAny(): bool
-{
-    // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()?->cargo, ['admin']);
-}
-
-
     protected static ?string $model = User::class;
 
-    // Troquei para o ícone de 'usuários' que faz mais sentido
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Administração';
     protected static ?int $navigationSort = 1;
-
     protected static ?string $modelLabel = 'Administrador';
     protected static ?string $pluralModelLabel = 'Administradores';
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
 
     public static function form(Form $form): Form
     {
@@ -49,14 +64,18 @@ class UserResource extends Resource
                 Section::make('Dados do Administrador')
                     ->description('Preencha as informações do administrador')
                     ->schema([
-                        // <-- CAMPO DE FOTO ADICIONADO AQUI -->
                         FileUpload::make('foto_perfil')
                             ->label('Foto de Perfil')
+                            ->disk('public')
+                            ->visibility('public')
                             ->image()
-                            ->avatar() // Deixa o upload redondo
+                            ->avatar()
                             ->directory('avatares')
                             ->columnSpanFull()
                             ->alignCenter(),
+
+                        Hidden::make('cargo')
+                            ->default('admin'),
 
                         TextInput::make('name')
                             ->label('Nome Completo')
@@ -76,22 +95,27 @@ class UserResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true),
 
+                        TextInput::make('nif')
+                            ->label('NIF (Nº de Identificação)')
+                            ->unique(ignoreRecord: true),
+
                         TextInput::make('telefone')
                             ->label('Telefone/WhatsApp')
                             ->mask('(99) 99999-9999')
                             ->required(),
 
-                        Select::make('cargo')
-                            ->label('Cargo / Função')
-                            ->options([
-                                'admin' => 'Administrador Geral',
-                                'diretor' => 'Diretor',
-                                'professor' => 'Professor',
-                                'suporte' => 'Suporte/Manutenção',
-                            ])
-                            ->default('admin')
-                            ->required(),
-                        
+                        Select::make('empresa_id')
+                            ->label('Empresa')
+                            ->relationship('empresa', 'nome', fn (Builder $query): Builder => $query->orderBy('nome'))
+                            ->searchable()
+                            ->preload(),
+
+                        Select::make('setor_id')
+                            ->label('Setor')
+                            ->relationship('setor', 'nome', fn (Builder $query): Builder => $query->orderBy('nome'))
+                            ->searchable()
+                            ->preload(),
+
                         Toggle::make('ativo')
                             ->label('Usuário ativo')
                             ->default(true),
@@ -100,12 +124,13 @@ class UserResource extends Resource
                             ->label('Senha')
                             ->password()
                             ->revealable()
+                            ->helperText('Deixe em branco para manter a senha atual.')
                             ->required(fn (string $context): bool => $context === 'create')
-                            ->dehydrated(fn ($state) => filled($state))
+                            ->dehydrated(fn ($state): bool => filled($state))
                             ->maxLength(255)
                             ->columnSpanFull(),
                     ])
-                    ->columns(2) // Coloca os campos lado a lado
+                    ->columns(2),
             ]);
     }
 
@@ -113,38 +138,38 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                // <-- COLUNA DE FOTO ADICIONADA AQUI -->
                 ImageColumn::make('foto_perfil')
                     ->label('Avatar')
-                    ->circular(), // Foto redonda na tabela
+                    ->getStateUsing(fn (User $record): ?string => $record->publicStoragePath($record->foto_perfil))
+                    ->disk('public')
+                    ->defaultImageUrl(asset('images/avatar-placeholder.svg'))
+                    ->circular(),
 
                 TextColumn::make('name')
                     ->label('Nome')
                     ->searchable()
                     ->sortable(),
-                    
+
                 TextColumn::make('email')
                     ->label('E-mail')
                     ->searchable(),
 
-                TextColumn::make('cargo')
-                    ->label('Cargo')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'admin' => 'danger',
-                        'diretor' => 'warning',
-                        'professor' => 'info',
-                        'suporte' => 'success', // Mudei para success para dar uma cor diferente do default
-                        default => 'gray',
-                    })
-                    ->sortable(),
+                TextColumn::make('nif')
+                    ->label('NIF')
+                    ->placeholder('Sem NIF')
+                    ->searchable(),
+
+                TextColumn::make('empresa.nome')
+                    ->label('Empresa')
+                    ->placeholder('Sem empresa'),
+
+                TextColumn::make('setor.nome')
+                    ->label('Setor')
+                    ->placeholder('Sem setor'),
 
                 IconColumn::make('ativo')
                     ->label('Ativo')
                     ->boolean(),
-            ])
-            ->filters([
-                // Aqui depois podemos colocar filtros (ex: filtrar só os ativos)
             ])
             ->actions([
                 EditAction::make(),
@@ -156,11 +181,9 @@ class UserResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
+    public static function getEloquentQuery(): Builder
     {
-        return [
-            //
-        ];
+        return parent::getEloquentQuery()->where('cargo', 'admin');
     }
 
     public static function getPages(): array
@@ -171,16 +194,4 @@ class UserResource extends Resource
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
-
-    // Filtra para a aba de Administradores mostrar apenas os admins
-   // Filtra para a aba de Administradores mostrar todos os cargos administrativos
-public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-{
-    return parent::getEloquentQuery()->whereIn('cargo', [
-        'admin', 
-        'diretor', 
-        'professor', 
-        'suporte'
-    ]);
-}
 }

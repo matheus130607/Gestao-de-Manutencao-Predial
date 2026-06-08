@@ -4,30 +4,21 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SetorResource\Pages;
 use App\Models\Setor;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
-
-// Componentes de Formulário
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-
-// Componentes de Tabela
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class SetorResource extends Resource
 {
-
-    public static function canViewAny(): bool
-{
-    // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
-}
-
     protected static ?string $model = Setor::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-map';
@@ -35,6 +26,33 @@ class SetorResource extends Resource
     protected static ?int $navigationSort = 3;
     protected static ?string $modelLabel = 'Setor';
     protected static ?string $pluralModelLabel = 'Setores';
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->isAdmin() || $user?->isResponsavel();
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
 
     public static function form(Form $form): Form
     {
@@ -53,7 +71,6 @@ class SetorResource extends Resource
                             ->placeholder('Ex: Térreo, 2º Andar')
                             ->required(),
 
-                        
                         Select::make('bloco')
                             ->label('Bloco')
                             ->options([
@@ -61,11 +78,12 @@ class SetorResource extends Resource
                                 'B' => 'Bloco B',
                                 'C' => 'Bloco C',
                                 'D' => 'Bloco D',
-                                'outro' => 'Outro'
+                                'outro' => 'Outro',
                             ])
                             ->required()
-                            ->native(false), // Deixa o visual mais moderno
-                    ])->columns(3) // Coloca os 3 campos na mesma linha
+                            ->native(false),
+                    ])
+                    ->columns(3),
             ]);
     }
 
@@ -84,12 +102,9 @@ class SetorResource extends Resource
 
                 TextColumn::make('bloco')
                     ->label('Bloco')
-                    ->badge() // Deixa com visual de etiqueta
+                    ->badge()
                     ->color('info')
                     ->sortable(),
-            ])
-            ->filters([
-                //
             ])
             ->actions([
                 EditAction::make(),
@@ -99,6 +114,11 @@ class SetorResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->visibleTo(auth()->user());
     }
 
     public static function getRelations(): array

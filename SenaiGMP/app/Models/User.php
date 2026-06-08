@@ -2,51 +2,39 @@
 
 namespace App\Models;
 
-// Imports necessários para o Filament e Permissões
+use App\Models\Concerns\HasPublicStorageFiles;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Filament\Models\Contracts\HasAvatar;
-use Illuminate\Support\Facades\Storage; 
 
 class User extends Authenticatable implements HasAvatar, FilamentUser
 {
-    use HasFactory, Notifiable;
+    use HasFactory, HasPublicStorageFiles, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'cpf',        
-        'telefone',   
-        'cargo',      
+        'cpf',
+        'nif',
+        'telefone',
+        'cargo',
         'ativo',
+        'empresa_id',
         'foto_perfil',
-        'setor_id'
+        'setor_id',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -56,38 +44,48 @@ class User extends Authenticatable implements HasAvatar, FilamentUser
         ];
     }
 
-    /**
-     * Regra de Acesso ao Painel
-     * Bloqueia qualquer usuário que estiver com 'ativo' = false
-     */
     public function canAccessPanel(Panel $panel): bool
     {
-        // Só entra se estiver ativo
         return (bool) $this->ativo;
     }
 
     public function getFilamentAvatarUrl(): ?string
     {
-        return $this->foto_perfil ? Storage::url($this->foto_perfil) : null;
+        return $this->publicStorageUrl($this->foto_perfil);
     }
 
-    public function empresa()
+    public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
     }
 
-    public function setor()
+    public function setor(): BelongsTo
     {
         return $this->belongsTo(Setor::class);
     }
 
-    public function especialidadesRelacao(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function especialidadesRelacao(): HasMany
     {
         return $this->hasMany(ColaboradorEspecialidade::class);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->cargo === 'admin';
+    }
+
+    public function isResponsavel(): bool
+    {
+        return $this->cargo === 'responsavel';
+    }
+
+    public function isColaborador(): bool
+    {
+        return $this->cargo === 'colaborador';
+    }
+
     public static function cargosGestao(): array
     {
-        return ['admin', 'responsavel'];
+        return ['admin'];
     }
 }

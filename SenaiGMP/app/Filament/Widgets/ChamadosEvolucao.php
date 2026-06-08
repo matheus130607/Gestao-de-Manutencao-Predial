@@ -64,12 +64,14 @@ class ChamadosEvolucao extends ChartWidget
             ->map(fn (int $day) => $start->copy()->addDays($day));
 
         $abertos = Chamado::query()
+            ->visibleTo(auth()->user())
             ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
             ->whereDate('created_at', '>=', $start->toDateString())
             ->groupByRaw('DATE(created_at)')
             ->pluck('total', 'date');
 
         $iniciados = Chamado::query()
+            ->visibleTo(auth()->user())
             ->selectRaw('DATE(iniciado_em) as date, COUNT(*) as total')
             ->whereNotNull('iniciado_em')
             ->whereDate('iniciado_em', '>=', $start->toDateString())
@@ -77,6 +79,7 @@ class ChamadosEvolucao extends ChartWidget
             ->pluck('total', 'date');
 
         $concluidos = Chamado::query()
+            ->visibleTo(auth()->user())
             ->selectRaw('DATE(COALESCE(concluido_em, updated_at)) as date, COUNT(*) as total')
             ->where('status', Chamado::STATUS_CONCLUIDO)
             ->where(function ($query) use ($start): void {

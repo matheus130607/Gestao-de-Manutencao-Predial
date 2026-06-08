@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Avatar padrao">
+  <rect width="160" height="160" rx="80" fill="#f1f5f9"/>
+  <circle cx="80" cy="60" r="28" fill="#cbd5e1"/>
+  <path d="M32 136c6-27 24-42 48-42s42 15 48 42" fill="#cbd5e1"/>
+  <path d="M34 136c6-25 23-38 46-38s40 13 46 38" fill="none" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -4,22 +4,26 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ChamadoResource\Pages;
 use App\Models\Chamado;
+use App\Models\Patrimonio;
+use App\Models\Setor;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use InvalidArgumentException;
 
 class ChamadoResource extends Resource
 {
@@ -28,9 +32,7 @@ class ChamadoResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
     protected static ?string $navigationGroup = 'Operação';
     protected static ?int $navigationSort = 1;
-
     protected static ?string $modelLabel = 'Chamado';
-
     protected static ?string $pluralModelLabel = 'Chamados';
 
     public static function form(Form $form): Form
@@ -42,25 +44,58 @@ class ChamadoResource extends Resource
                     ->schema([
                         Select::make('user_id')
                             ->label('Responsável')
-                            ->relationship('responsavel', 'name', fn (Builder $query) => $query->where('cargo', 'responsavel'))
-                            ->default(fn () => auth()->user()?->cargo === 'responsavel' ? auth()->id() : null)
+                            ->relationship(
+                                'responsavel',
+                                'name',
+                                fn (Builder $query): Builder => $query
+                                    ->where('cargo', 'responsavel')
+                                    ->when(auth()->user()?->isResponsavel(), fn (Builder $query): Builder => $query->whereKey(auth()->id()))
+                            )
+                            ->default(fn (): ?int => auth()->user()?->isResponsavel() ? auth()->id() : null)
+                            ->disabled(fn (): bool => auth()->user()?->isResponsavel() ?? false)
+                            ->dehydrated(true)
                             ->searchable()
                             ->preload()
                             ->required(),
 
                         Select::make('setor_id')
                             ->label('Setor solicitante')
-                            ->relationship('setor', 'nome')
+                            ->relationship(
+                                'setor',
+                                'nome',
+                                fn (Builder $query): Builder => $query->visibleTo(auth()->user())
+                            )
+                            ->default(fn (): ?int => auth()->user()?->isResponsavel() ? auth()->user()?->setor_id : null)
+                            ->disabled(fn (): bool => auth()->user()?->isResponsavel() ?? false)
+                            ->dehydrated(true)
                             ->searchable()
                             ->preload()
                             ->required(),
 
                         Select::make('patrimonio_id')
                             ->label('Patrimônio')
-                            ->relationship('patrimonio', 'codigo')
+                            ->relationship(
+                                'patrimonio',
+                                'codigo',
+                                fn (Builder $query): Builder => $query->visibleTo(auth()->user())
+                            )
                             ->searchable()
                             ->preload()
                             ->required(),
+
+                        Select::make('colaborador_id')
+                            ->label('Colaborador executor')
+                            ->relationship(
+                                'colaborador',
+                                'name',
+                                fn (Builder $query): Builder => $query
+                                    ->where('cargo', 'colaborador')
+                                    ->where('ativo', true)
+                                    ->orderBy('name')
+                            )
+                            ->placeholder('Sem colaborador definido')
+                            ->searchable()
+                            ->preload(),
 
                         Select::make('tipo')
                             ->label('Tipo de manutenção')
@@ -85,7 +120,8 @@ class ChamadoResource extends Resource
                             ->options(Chamado::statusOptions())
                             ->default(Chamado::STATUS_ABERTO)
                             ->native(false)
-                            ->required()
+                            ->disabled()
+                            ->dehydrated(false)
                             ->hiddenOn('create'),
 
                         Textarea::make('observacao')
@@ -96,6 +132,8 @@ class ChamadoResource extends Resource
 
                         FileUpload::make('imagem')
                             ->label('Foto do problema')
+                            ->disk('public')
+                            ->visibility('public')
                             ->image()
                             ->directory('chamados')
                             ->columnSpanFull(),
@@ -114,6 +152,9 @@ class ChamadoResource extends Resource
 
                 ImageColumn::make('imagem')
                     ->label('Foto')
+                    ->getStateUsing(fn (Chamado $record): ?string => $record->publicStoragePath($record->imagem))
+                    ->disk('public')
+                    ->defaultImageUrl(asset('images/patrimonio-placeholder.svg'))
                     ->square(),
 
                 TextColumn::make('tipo')
@@ -133,6 +174,12 @@ class ChamadoResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('colaborador.name')
+                    ->label('Colaborador')
+                    ->placeholder('Sem executor')
+                    ->searchable()
+                    ->sortable(),
+
                 TextColumn::make('prioridade')
                     ->label('Prioridade')
                     ->badge()
@@ -146,12 +193,18 @@ class ChamadoResource extends Resource
                     })
                     ->sortable(),
 
-                SelectColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
-                    ->options(Chamado::statusOptions())
-                    ->selectablePlaceholder(false)
-                    ->disabled(fn (Chamado $record): bool => auth()->user()?->cannot('update', $record) ?? true)
-                    ->updateStateUsing(fn (Chamado $record, string $state): string => $record->atualizarStatusOperacional($state)),
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => Chamado::statusOptions()[$state] ?? 'Não informado')
+                    ->color(fn (?string $state): string => match ($state) {
+                        Chamado::STATUS_ABERTO => 'danger',
+                        Chamado::STATUS_EM_ANDAMENTO => 'warning',
+                        Chamado::STATUS_CONCLUIDO => 'success',
+                        Chamado::STATUS_CANCELADO => 'gray',
+                        default => 'gray',
+                    })
+                    ->sortable(),
 
                 TextColumn::make('prazo')
                     ->label('Prazo')
@@ -164,6 +217,18 @@ class ChamadoResource extends Resource
                     ->label('Aberto em')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
+
+                TextColumn::make('iniciado_em')
+                    ->label('Iniciado em')
+                    ->dateTime('d/m/Y H:i')
+                    ->placeholder('Não iniciado')
+                    ->toggleable(),
+
+                TextColumn::make('concluido_em')
+                    ->label('Concluído em')
+                    ->dateTime('d/m/Y H:i')
+                    ->placeholder('Não concluído')
+                    ->toggleable(),
 
                 TextColumn::make('observacao')
                     ->label('Descrição')
@@ -190,17 +255,31 @@ class ChamadoResource extends Resource
 
                 SelectFilter::make('setor_id')
                     ->label('Setor')
-                    ->relationship('setor', 'nome')
+                    ->relationship('setor', 'nome', fn (Builder $query): Builder => $query->visibleTo(auth()->user()))
                     ->searchable()
                     ->preload()
                     ->native(false),
 
                 SelectFilter::make('user_id')
                     ->label('Responsável')
-                    ->relationship('responsavel', 'name', fn (Builder $query) => $query->where('cargo', 'responsavel'))
+                    ->relationship(
+                        'responsavel',
+                        'name',
+                        fn (Builder $query): Builder => $query
+                            ->where('cargo', 'responsavel')
+                            ->when(auth()->user()?->isResponsavel(), fn (Builder $query): Builder => $query->whereKey(auth()->id()))
+                    )
                     ->searchable()
                     ->preload()
                     ->native(false),
+
+                SelectFilter::make('colaborador_id')
+                    ->label('Colaborador')
+                    ->relationship('colaborador', 'name', fn (Builder $query): Builder => $query->where('cargo', 'colaborador'))
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false),
 
                 TernaryFilter::make('atraso')
                     ->label('Prazo')
@@ -234,28 +313,48 @@ class ChamadoResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('iniciar')
-                    ->label('Executar')
+                    ->label('Iniciar chamado')
                     ->icon('heroicon-m-play')
                     ->color('warning')
-                    ->visible(fn (Chamado $record): bool => $record->podeIniciar() && (auth()->user()?->can('update', $record) ?? false))
-                    ->action(function (Chamado $record): void {
-                        $record->atualizarStatusOperacional(Chamado::STATUS_EM_ANDAMENTO);
-                    }),
+                    ->requiresConfirmation()
+                    ->modalHeading('Iniciar chamado')
+                    ->modalDescription('Tem certeza que deseja iniciar este chamado? A data e hora de início serão registradas automaticamente.')
+                    ->modalSubmitActionLabel('Confirmar início')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->visible(fn (Chamado $record): bool => auth()->user()?->can('iniciar', $record) ?? false)
+                    ->action(fn (Chamado $record): mixed => self::runStatusAction(
+                        $record,
+                        fn () => $record->iniciar(auth()->user()),
+                        "Chamado #{$record->id} em andamento",
+                    )),
 
                 Tables\Actions\Action::make('concluir')
                     ->label('Concluir')
                     ->icon('heroicon-m-check')
                     ->color('success')
-                    ->visible(fn (Chamado $record): bool => $record->podeConcluir() && (auth()->user()?->can('update', $record) ?? false))
-                    ->action(function (Chamado $record): void {
-                        $record->atualizarStatusOperacional(Chamado::STATUS_CONCLUIDO);
-                    }),
+                    ->requiresConfirmation()
+                    ->modalHeading('Concluir chamado')
+                    ->modalDescription('Tem certeza que deseja concluir este chamado? A data e hora de fechamento serão registradas automaticamente.')
+                    ->modalSubmitActionLabel('Confirmar conclusão')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->visible(fn (Chamado $record): bool => auth()->user()?->can('concluir', $record) ?? false)
+                    ->action(fn (Chamado $record): mixed => self::runStatusAction(
+                        $record,
+                        fn () => $record->concluir(auth()->user()),
+                        "Chamado #{$record->id} concluído",
+                    )),
 
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Chamado $record): bool => auth()->user()?->can('update', $record) ?? false),
             ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('Nenhum chamado cadastrado')
             ->emptyStateDescription('Quando houver solicitações de manutenção, elas aparecerão aqui.');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->visibleTo(auth()->user());
     }
 
     public static function getPages(): array
@@ -265,5 +364,23 @@ class ChamadoResource extends Resource
             'create' => Pages\CreateChamado::route('/create'),
             'edit' => Pages\EditChamado::route('/{record}/edit'),
         ];
+    }
+
+    private static function runStatusAction(Chamado $record, callable $callback, string $successTitle): void
+    {
+        try {
+            $callback();
+
+            Notification::make()
+                ->title($successTitle)
+                ->success()
+                ->send();
+        } catch (InvalidArgumentException $exception) {
+            Notification::make()
+                ->title('Não foi possível atualizar o chamado')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 }

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="180" viewBox="0 0 240 180" role="img" aria-label="Imagem padrao">
+  <rect width="240" height="180" rx="16" fill="#f8fafc"/>
+  <rect x="36" y="42" width="168" height="96" rx="10" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="4"/>
+  <path d="M58 118l36-36 28 28 20-20 40 40" fill="none" stroke="#94a3b8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="168" cy="66" r="12" fill="#94a3b8"/>
+  <path d="M86 152h68" stroke="#dc2626" stroke-width="8" stroke-linecap="round"/>
+</svg>

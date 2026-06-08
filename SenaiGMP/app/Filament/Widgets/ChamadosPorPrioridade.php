@@ -38,6 +38,7 @@ class ChamadosPorPrioridade extends ChartWidget
         $prioridades = Chamado::prioridadeOptions();
 
         $rows = Chamado::query()
+            ->visibleTo(auth()->user())
             ->ativos()
             ->selectRaw('prioridade, COUNT(*) as total')
             ->groupBy('prioridade')

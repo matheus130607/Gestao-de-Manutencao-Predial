@@ -21,14 +21,34 @@ use Filament\Tables\Actions\DeleteBulkAction;
 // API para o CEP e Set para atualizar os campos
 use Illuminate\Support\Facades\Http;
 use Filament\Forms\Set;
+use Illuminate\Database\Eloquent\Model;
 
 class EmpresaResource extends Resource
 {
     public static function canViewAny(): bool
-{
-    // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
-}
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
 
     protected static ?string $model = Empresa::class;
 

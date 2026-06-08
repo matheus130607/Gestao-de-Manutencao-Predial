@@ -4,46 +4,64 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PatrimonioResource\Pages;
 use App\Models\Patrimonio;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables\Table;
-
-// Componentes de Formulário
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-
-// Componentes de Tabela
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Actions\EditAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class PatrimonioResource extends Resource
 {
-
-    public static function canViewAny(): bool
-{
-    // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
-}
-
     protected static ?string $model = Patrimonio::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
     protected static ?string $navigationGroup = 'Cadastros';
     protected static ?int $navigationSort = 4;
-    protected static ?string $modelLabel = 'Património';
-    protected static ?string $pluralModelLabel = 'Patrimónios';
+    protected static ?string $modelLabel = 'Patrimônio';
+    protected static ?string $pluralModelLabel = 'Patrimônios';
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->isAdmin() || $user?->isResponsavel();
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Detalhes do Património')
+                Section::make('Detalhes do Patrimônio')
                     ->schema([
                         TextInput::make('codigo')
                             ->label('Código')
@@ -61,18 +79,21 @@ class PatrimonioResource extends Resource
 
                         Select::make('setor_id')
                             ->label('Setor / Localização')
-                            ->relationship('setor', 'nome') // Puxa do Model 'setor' o campo 'nome'
-                            ->searchable() // Permite pesquisar o nome do setor digitando
-                            ->preload()    // Carrega a lista antes para ficar rápido
+                            ->relationship('setor', 'nome', fn (Builder $query): Builder => $query->visibleTo(auth()->user())->orderBy('nome'))
+                            ->searchable()
+                            ->preload()
                             ->required(),
 
                         FileUpload::make('imagem')
                             ->label('Foto')
+                            ->disk('public')
+                            ->visibility('public')
                             ->image()
                             ->directory('patrimonios-imagens')
                             ->imageEditor()
                             ->columnSpanFull(),
-                    ])->columns(2)
+                    ])
+                    ->columns(2),
             ]);
     }
 
@@ -82,6 +103,9 @@ class PatrimonioResource extends Resource
             ->columns([
                 ImageColumn::make('imagem')
                     ->label('Fotografia')
+                    ->getStateUsing(fn (Patrimonio $record): ?string => $record->publicStoragePath($record->imagem))
+                    ->disk('public')
+                    ->defaultImageUrl(asset('images/patrimonio-placeholder.svg'))
                     ->circular(),
 
                 TextColumn::make('codigo')
@@ -104,9 +128,6 @@ class PatrimonioResource extends Resource
                     ->label('Valor')
                     ->money('BRL'),
             ])
-            ->filters([
-                //
-            ])
             ->actions([
                 EditAction::make(),
             ])
@@ -115,6 +136,11 @@ class PatrimonioResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->visibleTo(auth()->user());
     }
 
     public static function getRelations(): array
