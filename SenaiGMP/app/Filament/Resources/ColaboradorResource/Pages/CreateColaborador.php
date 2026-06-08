@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ColaboradorResource\Pages;
 
 use App\Filament\Resources\ColaboradorResource;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Facades\DB;
 
 class CreateColaborador extends CreateRecord
 {
@@ -19,11 +20,13 @@ class CreateColaborador extends CreateRecord
         $selecionadas = $this->form->getRawState()['especialidades_selecionadas'] ?? [];
         $record = $this->getRecord();
 
-        $record->especialidadesRelacao()->delete();
-        foreach ($selecionadas as $especialidade) {
-            $record->especialidadesRelacao()->create([
-                'especialidade' => $especialidade,
-            ]);
-        }
+        DB::transaction(function () use ($record, $selecionadas) {
+            $record->especialidadesRelacao()->delete();
+            foreach ($selecionadas as $especialidade) {
+                $record->especialidadesRelacao()->create([
+                    'especialidade' => $especialidade,
+                ]);
+            }
+        });
     }
 }

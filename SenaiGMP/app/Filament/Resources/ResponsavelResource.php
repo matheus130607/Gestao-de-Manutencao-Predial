@@ -9,11 +9,13 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -117,6 +119,10 @@ class ResponsavelResource extends Resource
                             ->preload()
                             ->required(),
 
+                        Toggle::make('ativo')
+                            ->label('Usuário ativo')
+                            ->default(true),
+
                         TextInput::make('password')
                             ->label('Senha')
                             ->password()
@@ -164,6 +170,10 @@ class ResponsavelResource extends Resource
                     ->placeholder('Sem setor')
                     ->badge()
                     ->color('gray'),
+
+                IconColumn::make('ativo')
+                    ->label('Ativo')
+                    ->boolean(),
             ])
             ->actions([
                 EditAction::make(),
