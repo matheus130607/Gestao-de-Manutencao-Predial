@@ -22,9 +22,10 @@ class RankingSetoresChamados extends Widget
      */
     public function getRankingRows(): array
     {
-        $totalGeral = max(Chamado::query()->count(), 1);
+        $totalGeral = max(Chamado::query()->visibleTo(auth()->user())->count(), 1);
 
         return Chamado::query()
+            ->visibleTo(auth()->user())
             ->leftJoin('setors', 'chamados.setor_id', '=', 'setors.id')
             ->selectRaw(
                 "COALESCE(setors.nome, 'Sem setor') as setor,

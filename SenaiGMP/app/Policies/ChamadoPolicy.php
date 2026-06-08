@@ -10,56 +10,63 @@ class ChamadoPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * Determina se o usuário pode ver a lista (Resource e Widgets).
-     */
     public function viewAny(User $user): bool
     {
-        // Todos os usuários ativos podem ver a lista de chamados
-        return (bool) $user->ativo;
+        return (bool) $user->ativo
+            && ($user->isAdmin() || $user->isResponsavel() || $user->isColaborador());
     }
 
-    /**
-     * Determina se o usuário pode ver um chamado específico.
-     */
     public function view(User $user, Chamado $chamado): bool
     {
-        return (bool) $user->ativo;
+        return $chamado->isVisibleTo($user);
     }
 
-    /**
-     * Determina quem pode abrir novos chamados.
-     */
     public function create(User $user): bool
     {
-        return (bool) $user->ativo;
+        return (bool) $user->ativo && ($user->isAdmin() || $user->isResponsavel());
     }
 
-    /**
-     * Regras de edição:
-     * Admin: Edita tudo.
-     * Responsável: Edita qualquer chamado (hierarquia maior).
-     * Colaborador: Edita apenas o que ele abriu e se não estiver concluído.
-     */
     public function update(User $user, Chamado $chamado): bool
     {
-        if (!$user->ativo) return false;
+        if (! $user->ativo || ! $chamado->isVisibleTo($user)) {
+            return false;
+        }
 
-        // Admin e Responsável podem editar qualquer chamado
-        if (in_array($user->cargo, User::cargosGestao())) {
+        if ($user->isAdmin()) {
             return true;
         }
 
-        // Colaborador: apenas o próprio e se não estiver concluído
-        return $user->id === $chamado->user_id && $chamado->status !== Chamado::STATUS_CONCLUIDO;
+        if ($user->isResponsavel()) {
+            return ! $chamado->isFinalizado();
+        }
+
+        return $user->isColaborador()
+            && $chamado->colaborador_id === $user->id
+            && ! $chamado->isFinalizado();
     }
 
-    /**
-     * Determina quem pode excluir.
-     */
+    public function iniciar(User $user, Chamado $chamado): bool
+    {
+        return $this->canExecute($user, $chamado) && $chamado->podeIniciar();
+    }
+
+    public function concluir(User $user, Chamado $chamado): bool
+    {
+        return $this->canExecute($user, $chamado) && $chamado->podeConcluir();
+    }
+
     public function delete(User $user, Chamado $chamado): bool
     {
-        // Apenas Admin tem o poder de excluir registros do sistema
-        return $user->cargo === 'admin';
+        return (bool) $user->ativo && $user->isAdmin();
+    }
+
+    private function canExecute(User $user, Chamado $chamado): bool
+    {
+        if (! $user->ativo || ! $chamado->isVisibleTo($user)) {
+            return false;
+        }
+
+        return $user->isAdmin()
+            || ($user->isColaborador() && $chamado->colaborador_id === $user->id);
     }
 }

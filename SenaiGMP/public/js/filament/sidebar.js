@@ -3,6 +3,7 @@
  */
 (function () {
     const OPEN_CLASS = 'senai-sidebar-open';
+    const STORAGE_KEY = 'senai-sidebar-open';
     const LOGO_TOGGLE_SELECTOR = '#senai-sidebar-logo-toggle';
     const DESKTOP_QUERY = '(min-width: 1024px)';
 
@@ -16,6 +17,22 @@
         return window.Alpine.store('sidebar');
     }
 
+    function readStoredState() {
+        try {
+            return window.localStorage.getItem(STORAGE_KEY) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function writeStoredState(isOpen) {
+        try {
+            window.localStorage.setItem(STORAGE_KEY, isOpen ? '1' : '0');
+        } catch (error) {
+            // localStorage can be unavailable in private or restricted contexts.
+        }
+    }
+
     function updateLogoState(isOpen) {
         document.querySelectorAll(LOGO_TOGGLE_SELECTOR).forEach((button) => {
             button.setAttribute('aria-expanded', String(isOpen));
@@ -23,7 +40,7 @@
         });
     }
 
-    function setSidebarOpen(isOpen) {
+    function setSidebarOpen(isOpen, persist = true) {
         const sidebarStore = getSidebarStore();
 
         if (sidebarStore) {
@@ -32,6 +49,10 @@
 
         document.body.classList.toggle(OPEN_CLASS, isDesktop() && isOpen);
         updateLogoState(isOpen);
+
+        if (persist) {
+            writeStoredState(isOpen);
+        }
     }
 
     function currentSidebarState() {
@@ -42,11 +63,8 @@
         return Boolean(getSidebarStore()?.isOpen);
     }
 
-    function syncAfterNativeChanges() {
-        const isOpen = currentSidebarState();
-
-        document.body.classList.toggle(OPEN_CLASS, isDesktop() && isOpen);
-        updateLogoState(isOpen);
+    function applyStoredState() {
+        setSidebarOpen(readStoredState(), false);
     }
 
     document.addEventListener('click', function (event) {
@@ -56,21 +74,30 @@
 
         const toggle = event.target.closest(LOGO_TOGGLE_SELECTOR);
 
-        if (!toggle) {
+        if (toggle) {
+            event.preventDefault();
+            setSidebarOpen(!currentSidebarState());
             return;
         }
 
-        event.preventDefault();
-        setSidebarOpen(!currentSidebarState());
+        if (event.target.closest('.fi-sidebar-close-overlay')) {
+            setSidebarOpen(false);
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !isDesktop() && currentSidebarState()) {
+            setSidebarOpen(false);
+        }
     });
 
     document.addEventListener('DOMContentLoaded', function () {
-        setSidebarOpen(false);
+        window.requestAnimationFrame(applyStoredState);
     });
 
     document.addEventListener('livewire:navigated', function () {
-        window.requestAnimationFrame(syncAfterNativeChanges);
+        window.requestAnimationFrame(applyStoredState);
     });
 
-    window.addEventListener('resize', syncAfterNativeChanges);
+    window.addEventListener('resize', applyStoredState);
 })();

@@ -3,35 +3,25 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ResponsavelResource\Pages;
-use App\Models\User; 
-use App\Models\Empresa; 
+use App\Models\User;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-
-// Componentes de Formulário
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\FileUpload; 
-
-// Componentes de Tabela
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ImageColumn; 
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ResponsavelResource extends Resource
 {
-    public static function canViewAny(): bool
-{
-    // Apenas Admin e Responsável podem ver este menu
-    return in_array(auth()->user()->cargo, ['admin', 'responsavel']);
-}
-
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
@@ -40,24 +30,49 @@ class ResponsavelResource extends Resource
     protected static ?string $modelLabel = 'Responsável';
     protected static ?string $pluralModelLabel = 'Responsáveis';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Section::make('Dados do Responsável')
                     ->schema([
-                        // 1. Avatar no topo
                         FileUpload::make('foto_perfil')
                             ->label('Avatar')
+                            ->disk('public')
+                            ->visibility('public')
                             ->image()
-                            ->avatar() 
+                            ->avatar()
                             ->directory('perfil-usuarios')
                             ->columnSpanFull(),
 
                         Hidden::make('cargo')
                             ->default('responsavel'),
 
-                        // 2. Linha 1: Nome e E-mail
                         TextInput::make('name')
                             ->label('Nome Completo')
                             ->required(),
@@ -68,7 +83,6 @@ class ResponsavelResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true),
 
-                        // 3. Linha 2: Documentos
                         TextInput::make('cpf')
                             ->label('CPF')
                             ->mask('999.999.999-99')
@@ -80,7 +94,6 @@ class ResponsavelResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true),
 
-                        // 4. Linha 3: Contato e Empresa
                         TextInput::make('telefone')
                             ->label('Telefone')
                             ->mask('(99) 99999-9999')
@@ -89,24 +102,31 @@ class ResponsavelResource extends Resource
                         Select::make('empresa_id')
                             ->label('Empresa')
                             ->relationship(
-                                name: 'empresa', 
+                                name: 'empresa',
                                 titleAttribute: 'nome',
-                                modifyQueryUsing: fn (Builder $query) => $query->whereNotNull('nome')
+                                modifyQueryUsing: fn (Builder $query): Builder => $query->whereNotNull('nome')->orderBy('nome')
                             )
                             ->searchable()
                             ->preload()
                             ->required(),
 
-                        // 5. Linha 4: Senha isolada ocupando a linha inteira
+                        Select::make('setor_id')
+                            ->label('Setor responsável')
+                            ->relationship('setor', 'nome', fn (Builder $query): Builder => $query->orderBy('nome'))
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+
                         TextInput::make('password')
                             ->label('Senha')
                             ->password()
                             ->revealable()
+                            ->helperText('Deixe em branco para manter a senha atual.')
                             ->required(fn (string $context): bool => $context === 'create')
-                            ->dehydrated(fn ($state) => filled($state))
+                            ->dehydrated(fn ($state): bool => filled($state))
                             ->columnSpanFull(),
-
-                    ])->columns(2)
+                    ])
+                    ->columns(2),
             ]);
     }
 
@@ -116,21 +136,34 @@ class ResponsavelResource extends Resource
             ->columns([
                 ImageColumn::make('foto_perfil')
                     ->label('Avatar')
+                    ->getStateUsing(fn (User $record): ?string => $record->publicStoragePath($record->foto_perfil))
+                    ->disk('public')
+                    ->defaultImageUrl(asset('images/avatar-placeholder.svg'))
                     ->circular(),
 
                 TextColumn::make('name')
                     ->label('Nome')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('email')
-                    ->label('E-mail'),
+                    ->label('E-mail')
+                    ->searchable(),
 
                 TextColumn::make('nif')
                     ->label('NIF')
+                    ->placeholder('Sem NIF')
                     ->searchable(),
 
                 TextColumn::make('empresa.nome')
-                    ->label('Empresa'),
+                    ->label('Empresa')
+                    ->placeholder('Sem empresa'),
+
+                TextColumn::make('setor.nome')
+                    ->label('Setor')
+                    ->placeholder('Sem setor')
+                    ->badge()
+                    ->color('gray'),
             ])
             ->actions([
                 EditAction::make(),

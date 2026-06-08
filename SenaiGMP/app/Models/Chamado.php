@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPublicStorageFiles;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -10,6 +12,8 @@ use InvalidArgumentException;
 
 class Chamado extends Model
 {
+    use HasFactory, HasPublicStorageFiles;
+
     public const STATUS_ABERTO = 'aberto';
     public const STATUS_EM_ANDAMENTO = 'em_andamento';
     public const STATUS_CONCLUIDO = 'concluido';
@@ -20,10 +24,27 @@ class Chamado extends Model
     public const PRIORIDADE_ALTA = 'alta';
     public const PRIORIDADE_EMERGENCIA = 'emergencia';
 
+    protected $attributes = [
+        'status' => self::STATUS_ABERTO,
+    ];
+
     protected $fillable = [
-        'user_id', 'setor_id', 'patrimonio_id', 
-        'prioridade', 'tipo', 'imagem', 'observacao', 'status',
-        'prazo', 'iniciado_em', 'concluido_em',
+        'user_id',
+        'colaborador_id',
+        'setor_id',
+        'patrimonio_id',
+        'prioridade',
+        'tipo',
+        'imagem',
+        'observacao',
+        'status',
+        'prazo',
+        'iniciado_em',
+        'iniciado_por_id',
+        'concluido_em',
+        'concluido_por_id',
+        'cancelado_em',
+        'cancelado_por_id',
     ];
 
     protected function casts(): array
@@ -32,13 +53,25 @@ class Chamado extends Model
             'prazo' => 'date',
             'iniciado_em' => 'datetime',
             'concluido_em' => 'datetime',
+            'cancelado_em' => 'datetime',
         ];
     }
 
     protected static function booted(): void
     {
         static::saving(function (Chamado $chamado): void {
-            if ($chamado->isDirty('status')) {
+            if (! array_key_exists((string) $chamado->status, self::statusOptions())) {
+                throw new InvalidArgumentException("Status de chamado invalido: {$chamado->status}");
+            }
+
+            if ($chamado->exists && $chamado->isDirty('status')) {
+                $chamado->assertValidStatusTransition(
+                    (string) $chamado->getOriginal('status'),
+                    (string) $chamado->status,
+                );
+            }
+
+            if (! $chamado->exists || $chamado->isDirty('status')) {
                 $chamado->sincronizarTemposOperacionais();
             }
         });
@@ -116,6 +149,11 @@ class Chamado extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function colaborador(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'colaborador_id');
+    }
+
     public function setor(): BelongsTo
     {
         return $this->belongsTo(Setor::class);
@@ -124,6 +162,21 @@ class Chamado extends Model
     public function patrimonio(): BelongsTo
     {
         return $this->belongsTo(Patrimonio::class);
+    }
+
+    public function iniciadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'iniciado_por_id');
+    }
+
+    public function concluidoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'concluido_por_id');
+    }
+
+    public function canceladoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelado_por_id');
     }
 
     public function scopeAtivos(Builder $query): Builder
@@ -137,6 +190,38 @@ class Chamado extends Model
             ->ativos()
             ->whereNotNull('prazo')
             ->whereDate('prazo', '<', now()->toDateString());
+    }
+
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if (! $user || ! $user->ativo) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        if ($user->isResponsavel()) {
+            return $query->where('user_id', $user->id);
+        }
+
+        if ($user->isColaborador()) {
+            return $query->where('colaborador_id', $user->id);
+        }
+
+        return $query->whereRaw('1 = 0');
+    }
+
+    public function isVisibleTo(User $user): bool
+    {
+        if (! $user->ativo) {
+            return false;
+        }
+
+        return $user->isAdmin()
+            || ($user->isResponsavel() && $this->user_id === $user->id)
+            || ($user->isColaborador() && $this->colaborador_id === $user->id);
     }
 
     public function isFinalizado(): bool
@@ -166,24 +251,65 @@ class Chamado extends Model
         return $this->status === self::STATUS_EM_ANDAMENTO;
     }
 
-    public function iniciar(): void
+    public function podeCancelar(): bool
     {
-        $this->atualizarStatusOperacional(self::STATUS_EM_ANDAMENTO);
+        return ! $this->isFinalizado();
     }
 
-    public function concluir(): void
+    public function iniciar(?User $actor = null): void
     {
-        $this->atualizarStatusOperacional(self::STATUS_CONCLUIDO);
-    }
-
-    public function atualizarStatusOperacional(string $status): string
-    {
-        if (! array_key_exists($status, self::statusOptions())) {
-            throw new InvalidArgumentException("Status de chamado inválido: {$status}");
+        if (! $this->podeIniciar()) {
+            throw new InvalidArgumentException('Este chamado nao pode ser iniciado.');
         }
 
-        $this->status = $status;
+        $this->status = self::STATUS_EM_ANDAMENTO;
+        $this->iniciado_em ??= now();
+        $this->iniciado_por_id = $actor?->id;
+        $this->concluido_em = null;
+        $this->concluido_por_id = null;
+        $this->cancelado_em = null;
+        $this->cancelado_por_id = null;
         $this->save();
+    }
+
+    public function concluir(?User $actor = null): void
+    {
+        if (! $this->podeConcluir()) {
+            throw new InvalidArgumentException('Este chamado ainda nao foi iniciado.');
+        }
+
+        $this->status = self::STATUS_CONCLUIDO;
+        $this->concluido_em ??= now();
+        $this->concluido_por_id = $actor?->id;
+        $this->cancelado_em = null;
+        $this->cancelado_por_id = null;
+        $this->save();
+    }
+
+    public function cancelar(?User $actor = null): void
+    {
+        if (! $this->podeCancelar()) {
+            throw new InvalidArgumentException('Este chamado nao pode ser cancelado.');
+        }
+
+        $this->status = self::STATUS_CANCELADO;
+        $this->cancelado_em ??= now();
+        $this->cancelado_por_id = $actor?->id;
+        $this->save();
+    }
+
+    public function atualizarStatusOperacional(string $status, ?User $actor = null): string
+    {
+        if (! array_key_exists($status, self::statusOptions())) {
+            throw new InvalidArgumentException("Status de chamado invalido: {$status}");
+        }
+
+        match ($status) {
+            self::STATUS_EM_ANDAMENTO => $this->iniciar($actor),
+            self::STATUS_CONCLUIDO => $this->concluir($actor),
+            self::STATUS_CANCELADO => $this->cancelar($actor),
+            self::STATUS_ABERTO => throw new InvalidArgumentException('Nao e permitido reabrir chamado por esta acao.'),
+        };
 
         return $status;
     }
@@ -254,25 +380,53 @@ class Chamado extends Model
         return Str::limit(trim((string) $this->observacao), 130);
     }
 
+    private function assertValidStatusTransition(string $from, string $to): void
+    {
+        if ($from === $to) {
+            return;
+        }
+
+        $allowed = [
+            self::STATUS_ABERTO => [self::STATUS_EM_ANDAMENTO, self::STATUS_CANCELADO],
+            self::STATUS_EM_ANDAMENTO => [self::STATUS_CONCLUIDO, self::STATUS_CANCELADO],
+            self::STATUS_CONCLUIDO => [],
+            self::STATUS_CANCELADO => [],
+        ];
+
+        if (! in_array($to, $allowed[$from] ?? [], true)) {
+            throw new InvalidArgumentException("Transicao de chamado invalida: {$from} para {$to}");
+        }
+    }
+
     private function sincronizarTemposOperacionais(): void
     {
         if ($this->status === self::STATUS_ABERTO) {
             $this->iniciado_em = null;
+            $this->iniciado_por_id = null;
             $this->concluido_em = null;
+            $this->concluido_por_id = null;
+            $this->cancelado_em = null;
+            $this->cancelado_por_id = null;
         }
 
-        if ($this->status === self::STATUS_EM_ANDAMENTO && blank($this->iniciado_em)) {
-            $this->iniciado_em = now();
+        if ($this->status === self::STATUS_EM_ANDAMENTO) {
+            $this->iniciado_em ??= now();
             $this->concluido_em = null;
+            $this->concluido_por_id = null;
+            $this->cancelado_em = null;
+            $this->cancelado_por_id = null;
         }
 
         if ($this->status === self::STATUS_CONCLUIDO) {
-            $this->iniciado_em ??= now();
             $this->concluido_em ??= now();
+            $this->cancelado_em = null;
+            $this->cancelado_por_id = null;
         }
 
         if ($this->status === self::STATUS_CANCELADO) {
+            $this->cancelado_em ??= now();
             $this->concluido_em = null;
+            $this->concluido_por_id = null;
         }
     }
 }

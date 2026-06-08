@@ -44,6 +44,7 @@ class ChamadosPorSetor extends ChartWidget
     protected function getData(): array
     {
         $rows = Chamado::query()
+            ->visibleTo(auth()->user())
             ->leftJoin('setors', 'chamados.setor_id', '=', 'setors.id')
             ->selectRaw("COALESCE(setors.nome, 'Sem setor') as setor, COUNT(*) as total")
             ->groupByRaw("COALESCE(setors.nome, 'Sem setor')")

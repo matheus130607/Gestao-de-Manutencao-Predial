@@ -44,6 +44,7 @@ class ChamadosPorResponsavel extends ChartWidget
     protected function getData(): array
     {
         $rows = Chamado::query()
+            ->visibleTo(auth()->user())
             ->ativos()
             ->leftJoin('users', 'chamados.user_id', '=', 'users.id')
             ->selectRaw("COALESCE(users.name, 'Não atribuído') as responsavel, COUNT(*) as total")

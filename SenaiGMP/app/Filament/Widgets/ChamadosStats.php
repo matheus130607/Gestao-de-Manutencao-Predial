@@ -18,14 +18,14 @@ class ChamadosStats extends BaseWidget
 
     protected function getStats(): array
     {
-        $abertos = Chamado::query()->where('status', Chamado::STATUS_ABERTO)->count();
-        $andamento = Chamado::query()->where('status', Chamado::STATUS_EM_ANDAMENTO)->count();
-        $atrasados = Chamado::query()->atrasados()->count();
-        $criticos = Chamado::query()
+        $abertos = $this->visibleChamadosQuery()->where('status', Chamado::STATUS_ABERTO)->count();
+        $andamento = $this->visibleChamadosQuery()->where('status', Chamado::STATUS_EM_ANDAMENTO)->count();
+        $atrasados = $this->visibleChamadosQuery()->atrasados()->count();
+        $criticos = $this->visibleChamadosQuery()
             ->ativos()
             ->whereIn('prioridade', Chamado::prioridadesCriticas())
             ->count();
-        $concluidosMes = Chamado::query()
+        $concluidosMes = $this->visibleChamadosQuery()
             ->where('status', Chamado::STATUS_CONCLUIDO)
             ->where(function ($query): void {
                 $query
@@ -91,7 +91,7 @@ class ChamadosStats extends BaseWidget
             ->map(function (int $day) use ($start, $status, $prioridades, $onlyActive, $onlyOverdue): int {
                 $date = $start->copy()->addDays($day)->toDateString();
 
-                return Chamado::query()
+                return $this->visibleChamadosQuery()
                     ->when($status, fn ($query) => $query->where('status', $status))
                     ->when($prioridades !== [], fn ($query) => $query->whereIn('prioridade', $prioridades))
                     ->when($onlyActive, fn ($query) => $query->ativos())
@@ -104,7 +104,7 @@ class ChamadosStats extends BaseWidget
 
     private function averageCompletionLabel(): string
     {
-        $durations = Chamado::query()
+        $durations = $this->visibleChamadosQuery()
             ->where('status', Chamado::STATUS_CONCLUIDO)
             ->whereDate('created_at', '>=', now()->subDays(90)->toDateString())
             ->get(['created_at', 'updated_at', 'concluido_em'])
@@ -130,5 +130,10 @@ class ChamadosStats extends BaseWidget
         }
 
         return number_format($hours, 1, ',', '.') . ' h';
+    }
+
+    private function visibleChamadosQuery()
+    {
+        return Chamado::query()->visibleTo(auth()->user());
     }
 }

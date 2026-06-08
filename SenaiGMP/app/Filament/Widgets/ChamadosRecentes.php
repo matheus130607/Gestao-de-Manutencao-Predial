@@ -84,6 +84,7 @@ class ChamadosRecentes extends BaseWidget
     protected function getTableQuery(): Builder
     {
         return Chamado::query()
+            ->visibleTo(auth()->user())
             ->with(['setor', 'responsavel'])
             ->latest();
     }

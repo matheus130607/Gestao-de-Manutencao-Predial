@@ -24,6 +24,7 @@ use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
 
@@ -56,6 +57,7 @@ class Dashboard extends BaseDashboard
         'tipo' => null,
         'setor_id' => null,
         'responsavel_id' => null,
+        'colaborador_id' => null,
         'data_inicio' => null,
         'data_fim' => null,
         'prazo_situacao' => null,
@@ -142,6 +144,7 @@ class Dashboard extends BaseDashboard
                 Select::make('setor_id')
                     ->label('Setor solicitante')
                     ->options(fn (): array => Setor::query()
+                        ->visibleTo(auth()->user())
                         ->orderBy('nome')
                         ->pluck('nome', 'id')
                         ->all())
@@ -155,6 +158,7 @@ class Dashboard extends BaseDashboard
                     ->label('Responsável')
                     ->options(fn (): array => User::query()
                         ->where('cargo', 'responsavel')
+                        ->when(auth()->user()?->isResponsavel(), fn (Builder $query): Builder => $query->whereKey(auth()->id()))
                         ->orderBy('name')
                         ->pluck('name', 'id')
                         ->all())
@@ -162,6 +166,21 @@ class Dashboard extends BaseDashboard
                     ->searchable()
                     ->preload()
                     ->native(false)
+                    ->live(),
+
+                Select::make('colaborador_id')
+                    ->label('Colaborador')
+                    ->options(fn (): array => User::query()
+                        ->where('cargo', 'colaborador')
+                        ->where('ativo', true)
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->placeholder('Todos')
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
                     ->live(),
 
                 DatePicker::make('data_inicio')
@@ -221,6 +240,7 @@ class Dashboard extends BaseDashboard
             'tipo' => null,
             'setor_id' => null,
             'responsavel_id' => null,
+            'colaborador_id' => null,
             'data_inicio' => null,
             'data_fim' => null,
             'prazo_situacao' => null,
@@ -266,7 +286,7 @@ class Dashboard extends BaseDashboard
         return [
             [
                 'label' => 'Emergências',
-                'value' => Chamado::query()
+                'value' => $this->visibleChamadosQuery()
                     ->ativos()
                     ->where('prioridade', Chamado::PRIORIDADE_EMERGENCIA)
                     ->count(),
@@ -275,13 +295,13 @@ class Dashboard extends BaseDashboard
             ],
             [
                 'label' => 'Atrasados',
-                'value' => Chamado::query()->atrasados()->count(),
+                'value' => $this->visibleChamadosQuery()->atrasados()->count(),
                 'icon' => 'heroicon-m-clock',
                 'color' => 'warning',
             ],
             [
                 'label' => 'Abertos',
-                'value' => Chamado::query()
+                'value' => $this->visibleChamadosQuery()
                     ->where('status', Chamado::STATUS_ABERTO)
                     ->count(),
                 'icon' => 'heroicon-m-inbox',
@@ -289,7 +309,7 @@ class Dashboard extends BaseDashboard
             ],
             [
                 'label' => 'Em andamento',
-                'value' => Chamado::query()
+                'value' => $this->visibleChamadosQuery()
                     ->where('status', Chamado::STATUS_EM_ANDAMENTO)
                     ->count(),
                 'icon' => 'heroicon-m-wrench-screwdriver',
@@ -297,7 +317,7 @@ class Dashboard extends BaseDashboard
             ],
             [
                 'label' => 'Concluídos 7 dias',
-                'value' => Chamado::query()
+                'value' => $this->visibleChamadosQuery()
                     ->where('status', Chamado::STATUS_CONCLUIDO)
                     ->where(function (Builder $query): void {
                         $query
@@ -317,7 +337,7 @@ class Dashboard extends BaseDashboard
 
     public function getActiveChamadosCount(): int
     {
-        return Chamado::query()->ativos()->count();
+        return $this->visibleChamadosQuery()->ativos()->count();
     }
 
     public function getAppliedFiltersCount(): int
@@ -329,9 +349,9 @@ class Dashboard extends BaseDashboard
 
     public function executarChamado(int $chamadoId): void
     {
-        $chamado = Chamado::query()->findOrFail($chamadoId);
+        $chamado = $this->visibleChamadosQuery()->findOrFail($chamadoId);
 
-        if (Gate::denies('update', $chamado)) {
+        if (Gate::denies('iniciar', $chamado)) {
             Notification::make()
                 ->title('Você não pode executar este chamado')
                 ->danger()
@@ -350,7 +370,17 @@ class Dashboard extends BaseDashboard
             return;
         }
 
-        $chamado->iniciar();
+        try {
+            $chamado->iniciar(auth()->user());
+        } catch (InvalidArgumentException $exception) {
+            Notification::make()
+                ->title('Nao foi possivel iniciar este chamado')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title("Chamado #{$chamado->id} em andamento")
@@ -360,9 +390,9 @@ class Dashboard extends BaseDashboard
 
     public function concluirChamado(int $chamadoId): void
     {
-        $chamado = Chamado::query()->findOrFail($chamadoId);
+        $chamado = $this->visibleChamadosQuery()->findOrFail($chamadoId);
 
-        if (Gate::denies('update', $chamado)) {
+        if (Gate::denies('concluir', $chamado)) {
             Notification::make()
                 ->title('Você não pode concluir este chamado')
                 ->danger()
@@ -381,12 +411,48 @@ class Dashboard extends BaseDashboard
             return;
         }
 
-        $chamado->concluir();
+        try {
+            $chamado->concluir(auth()->user());
+        } catch (InvalidArgumentException $exception) {
+            Notification::make()
+                ->title('Nao foi possivel concluir este chamado')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title("Chamado #{$chamado->id} concluído")
             ->success()
             ->send();
+    }
+
+    public function iniciarChamadoAction(): Action
+    {
+        return Action::make('iniciarChamado')
+            ->requiresConfirmation()
+            ->modalHeading('Iniciar chamado')
+            ->modalDescription('Tem certeza que deseja iniciar este chamado? A data e hora de início serão registradas automaticamente.')
+            ->modalSubmitActionLabel('Confirmar início')
+            ->modalCancelActionLabel('Cancelar')
+            ->action(function (array $arguments): void {
+                $this->executarChamado((int) ($arguments['chamado'] ?? 0));
+            });
+    }
+
+    public function concluirChamadoAction(): Action
+    {
+        return Action::make('concluirChamado')
+            ->requiresConfirmation()
+            ->modalHeading('Concluir chamado')
+            ->modalDescription('Tem certeza que deseja concluir este chamado? A data e hora de fechamento serão registradas automaticamente.')
+            ->modalSubmitActionLabel('Confirmar conclusão')
+            ->modalCancelActionLabel('Cancelar')
+            ->action(function (array $arguments): void {
+                $this->concluirChamado((int) ($arguments['chamado'] ?? 0));
+            });
     }
 
     protected function getHeaderActions(): array
@@ -395,14 +461,21 @@ class Dashboard extends BaseDashboard
             Action::make('novoChamado')
                 ->label('Novo chamado')
                 ->icon('heroicon-m-plus')
+                ->visible(fn (): bool => auth()->user()?->can('create', Chamado::class) ?? false)
                 ->url(ChamadoResource::getUrl('create')),
 
             Action::make('verChamados')
                 ->label('Ver chamados')
                 ->icon('heroicon-m-list-bullet')
                 ->color('gray')
+                ->visible(fn (): bool => auth()->user()?->can('viewAny', Chamado::class) ?? false)
                 ->url(ChamadoResource::getUrl('index')),
         ];
+    }
+
+    private function visibleChamadosQuery(): Builder
+    {
+        return Chamado::query()->visibleTo(auth()->user());
     }
 
     private function getChamadosQuery(): Builder
@@ -410,8 +483,8 @@ class Dashboard extends BaseDashboard
         $filters = $this->filters;
         $search = trim((string) ($filters['search'] ?? ''));
 
-        return Chamado::query()
-            ->with(['setor', 'responsavel', 'patrimonio'])
+        return $this->visibleChamadosQuery()
+            ->with(['setor', 'responsavel', 'colaborador', 'patrimonio'])
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $query) use ($search): void {
                     if (is_numeric($search)) {
@@ -433,6 +506,7 @@ class Dashboard extends BaseDashboard
             ->when($filters['tipo'] ?? null, fn (Builder $query, string $tipo) => $query->where('tipo', $tipo))
             ->when($filters['setor_id'] ?? null, fn (Builder $query, string $setorId) => $query->where('setor_id', $setorId))
             ->when($filters['responsavel_id'] ?? null, fn (Builder $query, string $responsavelId) => $query->where('user_id', $responsavelId))
+            ->when($filters['colaborador_id'] ?? null, fn (Builder $query, string $colaboradorId) => $query->where('colaborador_id', $colaboradorId))
             ->when($filters['data_inicio'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '>=', $date))
             ->when($filters['data_fim'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '<=', $date))
             ->when($filters['prazo_situacao'] ?? null, function (Builder $query, string $situacao): void {
