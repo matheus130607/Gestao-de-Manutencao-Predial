@@ -14,6 +14,7 @@ class Patrimonio extends Model
 
     protected $fillable = [
         'codigo',
+        'nome',
         'valor',
         'data_aquisicao',
         'imagem',

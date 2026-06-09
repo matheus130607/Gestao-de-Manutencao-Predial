@@ -79,6 +79,7 @@ class ChamadoResource extends Resource
                                 'codigo',
                                 fn (Builder $query): Builder => $query->visibleTo(auth()->user())
                             )
+                            ->getOptionLabelFromRecordUsing(fn ($r) => "{$r->codigo}" . ($r->nome ? " — {$r->nome}" : ''))
                             ->searchable()
                             ->preload()
                             ->required(),
