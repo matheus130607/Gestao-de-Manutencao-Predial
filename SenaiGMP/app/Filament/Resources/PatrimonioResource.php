@@ -68,6 +68,9 @@ class PatrimonioResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true),
 
+                        TextInput::make('nome')
+                            ->label('Nome'),
+
                         DatePicker::make('data_aquisicao')
                             ->label('Data de Aquisição')
                             ->displayFormat('d/m/Y'),
@@ -112,6 +115,11 @@ class PatrimonioResource extends Resource
                     ->label('Código')
                     ->searchable()
                     ->sortable(),
+
+                TextColumn::make('nome')
+                    ->label('Nome')
+                    ->placeholder('Sem nome')
+                    ->searchable(),
 
                 TextColumn::make('setor.nome')
                     ->label('Setor')
