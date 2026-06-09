@@ -12,6 +12,7 @@ use App\Filament\Widgets\ChamadosRecentes;
 use App\Filament\Widgets\ChamadosStats;
 use App\Filament\Widgets\RankingSetoresChamados;
 use App\Models\Chamado;
+use App\Models\Patrimonio;
 use App\Models\Setor;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -458,6 +459,16 @@ class Dashboard extends BaseDashboard
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('lerQrCode')
+                ->label('Ler QR Code')
+                ->icon('heroicon-m-qr-code')
+                ->color('gray')
+                ->visible(fn (): bool => auth()->user()?->isAdmin() || auth()->user()?->isResponsavel())
+                ->modalContent(fn () => view('filament.modals.leitor-qr'))
+                ->modalHeading('Leitor de QR Code')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Fechar'),
+
             Action::make('novoChamado')
                 ->label('Novo chamado')
                 ->icon('heroicon-m-plus')
@@ -471,6 +482,17 @@ class Dashboard extends BaseDashboard
                 ->visible(fn (): bool => auth()->user()?->can('viewAny', Chamado::class) ?? false)
                 ->url(ChamadoResource::getUrl('index')),
         ];
+    }
+
+    public function buscarPatrimonio(string $codigo): void
+    {
+        $patrimonio = Patrimonio::where('codigo', trim($codigo))->first();
+
+        if ($patrimonio) {
+            $this->redirect('/admin/chamados/create?patrimonio_id=' . $patrimonio->id);
+        } else {
+            $this->redirect('/admin/patrimonios/create?codigo=' . urlencode(trim($codigo)));
+        }
     }
 
     private function visibleChamadosQuery(): Builder

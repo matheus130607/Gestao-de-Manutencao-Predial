@@ -16,6 +16,7 @@ use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -106,7 +107,6 @@ class PatrimonioResource extends Resource
             ->columns([
                 ImageColumn::make('imagem')
                     ->label('Fotografia')
-                    ->getStateUsing(fn (Patrimonio $record): ?string => $record->publicStoragePath($record->imagem))
                     ->disk('public')
                     ->defaultImageUrl(asset('images/patrimonio-placeholder.svg'))
                     ->circular(),
@@ -135,6 +135,14 @@ class PatrimonioResource extends Resource
                 TextColumn::make('valor')
                     ->label('Valor')
                     ->money('BRL'),
+            ])
+            ->filters([
+                SelectFilter::make('setor_id')
+                    ->label('Setor')
+                    ->relationship('setor', 'nome', fn (Builder $query) => $query->visibleTo(auth()->user())->orderBy('nome'))
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
             ])
             ->actions([
                 EditAction::make(),

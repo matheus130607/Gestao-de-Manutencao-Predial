@@ -123,7 +123,8 @@ class ChamadoResource extends Resource
                             ->native(false)
                             ->disabled()
                             ->dehydrated(false)
-                            ->hiddenOn('create'),
+                            ->hiddenOn('create')
+                            ->helperText('O status é alterado pelos botões "Iniciar" e "Concluir" na listagem ou no dashboard.'),
 
                         Textarea::make('observacao')
                             ->label('Descrição do problema')

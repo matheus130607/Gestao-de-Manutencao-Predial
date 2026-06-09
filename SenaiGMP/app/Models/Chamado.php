@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasPublicStorageFiles;
+use App\Notifications\ChamadoStatusAlterado;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -270,6 +271,8 @@ class Chamado extends Model
         $this->cancelado_em = null;
         $this->cancelado_por_id = null;
         $this->save();
+
+        $this->responsavel?->notify(new ChamadoStatusAlterado($this));
     }
 
     public function concluir(?User $actor = null): void
@@ -284,6 +287,8 @@ class Chamado extends Model
         $this->cancelado_em = null;
         $this->cancelado_por_id = null;
         $this->save();
+
+        $this->responsavel?->notify(new ChamadoStatusAlterado($this));
     }
 
     public function cancelar(?User $actor = null): void
@@ -296,6 +301,9 @@ class Chamado extends Model
         $this->cancelado_em ??= now();
         $this->cancelado_por_id = $actor?->id;
         $this->save();
+
+        $this->responsavel?->notify(new ChamadoStatusAlterado($this));
+        $this->colaborador?->notify(new ChamadoStatusAlterado($this));
     }
 
     public function atualizarStatusOperacional(string $status, ?User $actor = null): string

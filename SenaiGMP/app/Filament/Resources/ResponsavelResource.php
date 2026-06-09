@@ -142,7 +142,6 @@ class ResponsavelResource extends Resource
             ->columns([
                 ImageColumn::make('foto_perfil')
                     ->label('Avatar')
-                    ->getStateUsing(fn (User $record): ?string => $record->publicStoragePath($record->foto_perfil))
                     ->disk('public')
                     ->defaultImageUrl(asset('images/avatar-placeholder.svg'))
                     ->circular(),
