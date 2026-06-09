@@ -152,6 +152,9 @@
           Acessar Painel Administrativo
           <svg class="w-4 h-4 group-hover:translate-x-1 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
+        <a href="{{ url('/procedimentos-operacionais') }}" class="inline-flex items-center gap-2 border border-senai-gray-700 hover:border-senai-red/60 hover:text-senai-red transition px-7 py-3.5 rounded-md font-medium">
+          Procedimentos Operacionais
+        </a>
         <a href="#sobre" class="inline-flex items-center gap-2 border border-senai-gray-700 hover:border-senai-gray-400 transition px-7 py-3.5 rounded-md font-medium">
           Conhecer o sistema
         </a>
