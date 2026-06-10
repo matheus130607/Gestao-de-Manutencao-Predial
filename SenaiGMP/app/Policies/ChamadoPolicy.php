@@ -47,12 +47,24 @@ class ChamadoPolicy
 
     public function iniciar(User $user, Chamado $chamado): bool
     {
-        return $this->canExecute($user, $chamado) && $chamado->podeIniciar();
+        if (! $this->canAccessExecutableChamado($user, $chamado) || ! $chamado->podeIniciar()) {
+            return false;
+        }
+
+        return $user->isAdmin()
+            || ($user->isColaborador() && (
+                blank($chamado->colaborador_id) || $chamado->colaborador_id === $user->id
+            ));
     }
 
     public function concluir(User $user, Chamado $chamado): bool
     {
-        return $this->canExecute($user, $chamado) && $chamado->podeConcluir();
+        if (! $this->canAccessExecutableChamado($user, $chamado) || ! $chamado->podeConcluir()) {
+            return false;
+        }
+
+        return $user->isAdmin()
+            || ($user->isColaborador() && $chamado->colaborador_id === $user->id);
     }
 
     public function delete(User $user, Chamado $chamado): bool
@@ -60,13 +72,12 @@ class ChamadoPolicy
         return (bool) $user->ativo && $user->isAdmin();
     }
 
-    private function canExecute(User $user, Chamado $chamado): bool
+    private function canAccessExecutableChamado(User $user, Chamado $chamado): bool
     {
         if (! $user->ativo || ! $chamado->isVisibleTo($user)) {
             return false;
         }
 
-        return $user->isAdmin()
-            || ($user->isColaborador() && $chamado->colaborador_id === $user->id);
+        return $user->isAdmin() || $user->isColaborador();
     }
 }

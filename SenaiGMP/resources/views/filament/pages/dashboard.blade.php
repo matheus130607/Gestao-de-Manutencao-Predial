@@ -1,4 +1,8 @@
 <x-filament-panels::page class="fi-dashboard-page">
+    @php
+        $canViewIndicators = $this->canViewIndicators();
+    @endphp
+
     <div class="senai-dashboard-shell">
         <div class="senai-dashboard-stack">
             <div class="senai-dashboard-tabs">
@@ -15,13 +19,15 @@
                         </x-slot>
                     </x-filament::tabs.item>
 
-                    <x-filament::tabs.item
-                        icon="heroicon-m-chart-bar-square"
-                        :active="$activeArea === 'indicadores'"
-                        wire:click="setActiveArea('indicadores')"
-                    >
-                        Gráficos e indicadores
-                    </x-filament::tabs.item>
+                    @if ($canViewIndicators)
+                        <x-filament::tabs.item
+                            icon="heroicon-m-chart-bar-square"
+                            :active="$activeArea === 'indicadores'"
+                            wire:click="setActiveArea('indicadores')"
+                        >
+                            Gráficos e indicadores
+                        </x-filament::tabs.item>
+                    @endif
                 </x-filament::tabs>
             </div>
 
@@ -72,7 +78,7 @@
 
                     <div class="senai-filter-body">
                         <p class="senai-filter-description">
-                            Refine a fila por status, prioridade, tipo, setor, responsável, abertura e prazo.
+                            Refine a fila por pesquisa, status, prioridade, tipo, setor solicitante e responsável.
                         </p>
 
                         <div class="senai-filter-form">
@@ -120,6 +126,8 @@
                             @php
                                 $canStart = auth()->user()?->can('iniciar', $chamado);
                                 $canFinish = auth()->user()?->can('concluir', $chamado);
+                                $canUpdate = auth()->user()?->can('update', $chamado);
+                                $recordPage = $canUpdate ? 'edit' : 'view';
                                 $isAtrasado = $chamado->isAtrasado();
                                 $accentColor = $isAtrasado ? '#dc2626' : $chamado->prioridadeHex();
                             @endphp
@@ -230,7 +238,7 @@
                                     <div class="senai-call-actions">
                                         <x-filament::button
                                             tag="a"
-                                            :href="\App\Filament\Resources\ChamadoResource::getUrl('edit', ['record' => $chamado])"
+                                            :href="\App\Filament\Resources\ChamadoResource::getUrl($recordPage, ['record' => $chamado])"
                                             color="gray"
                                             icon="heroicon-m-arrow-top-right-on-square"
                                             size="sm"
@@ -271,7 +279,7 @@
                         </div>
                     @endif
                 @endif
-            @else
+            @elseif ($canViewIndicators)
                 <x-filament-widgets::widgets
                     :columns="$this->getColumns()"
                     :data="$this->getWidgetData()"

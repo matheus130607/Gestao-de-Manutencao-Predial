@@ -30,7 +30,7 @@ class Setor extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->isColaborador()) {
             return $query;
         }
 

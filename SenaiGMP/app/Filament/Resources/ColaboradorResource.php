@@ -23,15 +23,32 @@ use Illuminate\Database\Eloquent\Model;
 class ColaboradorResource extends Resource
 {
     protected static ?string $model = User::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
     protected static ?string $navigationGroup = 'Cadastros';
+
     protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'Colaborador';
+
     protected static ?string $pluralModelLabel = 'Colaboradores';
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->isAdmin() ?? false;
+        $user = auth()->user();
+
+        return (bool) $user?->ativo && ($user->isAdmin() || $user->isColaborador());
+    }
+
+    public static function canView(Model $record): bool
+    {
+        $user = auth()->user();
+
+        return $record instanceof User
+            && $record->cargo === 'colaborador'
+            && (bool) $user?->ativo
+            && ($user->isAdmin() || ($user->isColaborador() && $record->is($user)));
     }
 
     public static function canCreate(): bool
@@ -173,13 +190,25 @@ class ColaboradorResource extends Resource
                     ->color('gray'),
             ])
             ->actions([
-                EditAction::make(),
+                EditAction::make()
+                    ->visible(fn (User $record): bool => static::canEdit($record)),
             ]);
     }
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('cargo', 'colaborador');
+        $query = parent::getEloquentQuery()->where('cargo', 'colaborador');
+        $user = auth()->user();
+
+        if ($user?->isAdmin()) {
+            return $query;
+        }
+
+        if ($user?->isColaborador()) {
+            return $query->whereKey($user->id);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     public static function getPages(): array

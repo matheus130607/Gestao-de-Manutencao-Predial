@@ -32,7 +32,7 @@ class Patrimonio extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->isColaborador()) {
             return $query;
         }
 
@@ -46,6 +46,7 @@ class Patrimonio extends Model
     public function isVisibleTo(User $user): bool
     {
         return $user->isAdmin()
+            || $user->isColaborador()
             || ($user->isResponsavel() && filled($user->setor_id) && $this->setor_id === $user->setor_id);
     }
 }

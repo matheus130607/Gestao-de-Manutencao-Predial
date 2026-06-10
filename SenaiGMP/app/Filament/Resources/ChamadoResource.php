@@ -4,9 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ChamadoResource\Pages;
 use App\Models\Chamado;
-use App\Models\Patrimonio;
-use App\Models\Setor;
-use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
@@ -18,9 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
@@ -30,9 +25,13 @@ class ChamadoResource extends Resource
     protected static ?string $model = Chamado::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+
     protected static ?string $navigationGroup = 'Operação';
+
     protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'Chamado';
+
     protected static ?string $pluralModelLabel = 'Chamados';
 
     public static function form(Form $form): Form
@@ -79,7 +78,7 @@ class ChamadoResource extends Resource
                                 'codigo',
                                 fn (Builder $query): Builder => $query->visibleTo(auth()->user())
                             )
-                            ->getOptionLabelFromRecordUsing(fn ($r) => "{$r->codigo}" . ($r->nome ? " — {$r->nome}" : ''))
+                            ->getOptionLabelFromRecordUsing(fn ($r) => "{$r->codigo}".($r->nome ? " — {$r->nome}" : ''))
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -256,7 +255,7 @@ class ChamadoResource extends Resource
                     ->native(false),
 
                 SelectFilter::make('setor_id')
-                    ->label('Setor')
+                    ->label('Setor solicitante')
                     ->relationship('setor', 'nome', fn (Builder $query): Builder => $query->visibleTo(auth()->user()))
                     ->searchable()
                     ->preload()
@@ -269,7 +268,10 @@ class ChamadoResource extends Resource
                         'name',
                         fn (Builder $query): Builder => $query
                             ->where('cargo', 'responsavel')
-                            ->when(auth()->user()?->isResponsavel(), fn (Builder $query): Builder => $query->whereKey(auth()->id()))
+                            ->when(
+                                auth()->user()?->isResponsavel() && filled(auth()->user()?->setor_id),
+                                fn (Builder $query): Builder => $query->where('setor_id', auth()->user()?->setor_id)
+                            )
                     )
                     ->searchable()
                     ->preload()
@@ -282,38 +284,11 @@ class ChamadoResource extends Resource
                     ->preload()
                     ->native(false)
                     ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false),
-
-                TernaryFilter::make('atraso')
-                    ->label('Prazo')
-                    ->placeholder('Todos')
-                    ->trueLabel('Atrasados')
-                    ->falseLabel('Dentro do prazo')
-                    ->queries(
-                        true: fn (Builder $query): Builder => $query->atrasados(),
-                        false: fn (Builder $query): Builder => $query
-                            ->ativos()
-                            ->whereNotNull('prazo')
-                            ->whereDate('prazo', '>=', now()->toDateString()),
-                        blank: fn (Builder $query): Builder => $query,
-                    ),
-
-                Filter::make('abertura')
-                    ->label('Data de abertura')
-                    ->form([
-                        DatePicker::make('de')
-                            ->label('De')
-                            ->displayFormat('d/m/Y')
-                            ->native(false),
-                        DatePicker::make('ate')
-                            ->label('Até')
-                            ->displayFormat('d/m/Y')
-                            ->native(false),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => $query
-                        ->when($data['de'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '>=', $date))
-                        ->when($data['ate'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '<=', $date))),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn (Chamado $record): bool => auth()->user()?->can('view', $record) ?? false),
+
                 Tables\Actions\Action::make('iniciar')
                     ->label('Iniciar chamado')
                     ->icon('heroicon-m-play')
@@ -364,6 +339,7 @@ class ChamadoResource extends Resource
         return [
             'index' => Pages\ListChamados::route('/'),
             'create' => Pages\CreateChamado::route('/create'),
+            'view' => Pages\ViewChamado::route('/{record}'),
             'edit' => Pages\EditChamado::route('/{record}/edit'),
         ];
     }

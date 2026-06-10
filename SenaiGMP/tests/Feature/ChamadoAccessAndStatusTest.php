@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\ColaboradorResource;
+use App\Filament\Resources\ResponsavelResource;
 use App\Models\Chamado;
 use App\Models\Patrimonio;
 use App\Models\Setor;
@@ -22,6 +24,7 @@ class ChamadoAccessAndStatusTest extends TestCase
 
         $admin = $this->user('admin');
         $responsavelA = $this->user('responsavel', ['setor_id' => $setorA->id]);
+        $responsavelA2 = $this->user('responsavel', ['setor_id' => $setorA->id]);
         $responsavelB = $this->user('responsavel', ['setor_id' => $setorB->id]);
         $colaborador = $this->user('colaborador');
 
@@ -41,18 +44,24 @@ class ChamadoAccessAndStatusTest extends TestCase
             'patrimonio_id' => $patrimonioB->id,
         ]);
 
+        $chamadoA2 = $this->chamado([
+            'user_id' => $responsavelA2->id,
+            'setor_id' => $setorA->id,
+            'patrimonio_id' => $patrimonioA->id,
+        ]);
+
         $this->assertEqualsCanonicalizing(
-            [$chamadoA->id, $chamadoB->id],
+            [$chamadoA->id, $chamadoA2->id, $chamadoB->id],
             Chamado::query()->visibleTo($admin)->pluck('id')->all()
         );
 
-        $this->assertSame(
-            [$chamadoA->id],
+        $this->assertEqualsCanonicalizing(
+            [$chamadoA->id, $chamadoA2->id],
             Chamado::query()->visibleTo($responsavelA)->pluck('id')->all()
         );
 
-        $this->assertSame(
-            [$chamadoA->id],
+        $this->assertEqualsCanonicalizing(
+            [$chamadoA->id, $chamadoA2->id, $chamadoB->id],
             Chamado::query()->visibleTo($colaborador)->pluck('id')->all()
         );
 
@@ -65,6 +74,11 @@ class ChamadoAccessAndStatusTest extends TestCase
             [$setorA->id],
             Setor::query()->visibleTo($responsavelA)->pluck('id')->all()
         );
+
+        $setoresVisiveisParaColaborador = Setor::query()->visibleTo($colaborador)->pluck('id')->all();
+
+        $this->assertContains($setorA->id, $setoresVisiveisParaColaborador);
+        $this->assertContains($setorB->id, $setoresVisiveisParaColaborador);
     }
 
     public function test_start_and_finish_flow_records_operational_dates_and_users(): void
@@ -88,6 +102,74 @@ class ChamadoAccessAndStatusTest extends TestCase
         $this->assertSame(Chamado::STATUS_CONCLUIDO, $chamado->status);
         $this->assertNotNull($chamado->concluido_em);
         $this->assertSame($colaborador->id, $chamado->concluido_por_id);
+    }
+
+    public function test_colaborador_can_take_available_chamado_for_execution(): void
+    {
+        $colaborador = $this->user('colaborador');
+        $outroColaborador = $this->user('colaborador');
+        $chamado = $this->chamado(['colaborador_id' => null]);
+
+        $this->assertTrue($colaborador->can('iniciar', $chamado));
+
+        $chamado->iniciar($colaborador);
+        $chamado->refresh();
+
+        $this->assertSame($colaborador->id, $chamado->colaborador_id);
+        $this->assertTrue($colaborador->can('concluir', $chamado));
+        $this->assertFalse($outroColaborador->can('concluir', $chamado));
+    }
+
+    public function test_colaborador_resource_limits_common_user_to_own_record(): void
+    {
+        $admin = $this->user('admin');
+        $colaborador = $this->user('colaborador');
+        $outroColaborador = $this->user('colaborador');
+
+        $this->actingAs($colaborador);
+
+        $this->assertTrue(ColaboradorResource::canViewAny());
+        $this->assertTrue(ColaboradorResource::canView($colaborador));
+        $this->assertFalse(ColaboradorResource::canView($outroColaborador));
+        $this->assertFalse(ColaboradorResource::canCreate());
+        $this->assertFalse(ColaboradorResource::canEdit($colaborador));
+        $this->assertSame(
+            [$colaborador->id],
+            ColaboradorResource::getEloquentQuery()->pluck('id')->all()
+        );
+
+        $this->actingAs($admin);
+
+        $this->assertEqualsCanonicalizing(
+            [$colaborador->id, $outroColaborador->id],
+            ColaboradorResource::getEloquentQuery()->pluck('id')->all()
+        );
+    }
+
+    public function test_responsavel_resource_limits_common_user_to_own_record(): void
+    {
+        $admin = $this->user('admin');
+        $responsavel = $this->user('responsavel');
+        $outroResponsavel = $this->user('responsavel');
+
+        $this->actingAs($responsavel);
+
+        $this->assertTrue(ResponsavelResource::canViewAny());
+        $this->assertTrue(ResponsavelResource::canView($responsavel));
+        $this->assertFalse(ResponsavelResource::canView($outroResponsavel));
+        $this->assertFalse(ResponsavelResource::canCreate());
+        $this->assertFalse(ResponsavelResource::canEdit($responsavel));
+        $this->assertSame(
+            [$responsavel->id],
+            ResponsavelResource::getEloquentQuery()->pluck('id')->all()
+        );
+
+        $this->actingAs($admin);
+
+        $this->assertEqualsCanonicalizing(
+            [$responsavel->id, $outroResponsavel->id],
+            ResponsavelResource::getEloquentQuery()->pluck('id')->all()
+        );
     }
 
     public function test_chamado_cannot_be_finished_before_it_is_started(): void
@@ -117,7 +199,7 @@ class ChamadoAccessAndStatusTest extends TestCase
     {
         Storage::fake('public');
 
-        $path = 'perfil-usuarios/avatar-' . uniqid() . '.jpg';
+        $path = 'perfil-usuarios/avatar-'.uniqid().'.jpg';
         $user = $this->user('responsavel', ['foto_perfil' => $path]);
         $this->assertNull($user->publicStoragePath($user->foto_perfil));
 
@@ -144,7 +226,7 @@ class ChamadoAccessAndStatusTest extends TestCase
         $responsavel = $this->user('responsavel', ['setor_id' => $setor->id]);
 
         $patrimonio = Patrimonio::create([
-            'codigo' => 'PAT-' . fake()->unique()->numberBetween(1000, 9999),
+            'codigo' => 'PAT-'.fake()->unique()->numberBetween(1000, 9999),
             'setor_id' => $setor->id,
         ]);
 
