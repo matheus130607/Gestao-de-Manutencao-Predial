@@ -16,13 +16,19 @@ class Chamado extends Model
     use HasFactory, HasPublicStorageFiles;
 
     public const STATUS_ABERTO = 'aberto';
+
     public const STATUS_EM_ANDAMENTO = 'em_andamento';
+
     public const STATUS_CONCLUIDO = 'concluido';
+
     public const STATUS_CANCELADO = 'cancelado';
 
     public const PRIORIDADE_BAIXA = 'baixa';
+
     public const PRIORIDADE_MEDIA = 'media';
+
     public const PRIORIDADE_ALTA = 'alta';
+
     public const PRIORIDADE_EMERGENCIA = 'emergencia';
 
     protected $attributes = [
@@ -204,11 +210,13 @@ class Chamado extends Model
         }
 
         if ($user->isResponsavel()) {
-            return $query->where('user_id', $user->id);
+            return filled($user->setor_id)
+                ? $query->where('setor_id', $user->setor_id)
+                : $query;
         }
 
         if ($user->isColaborador()) {
-            return $query->where('colaborador_id', $user->id);
+            return $query;
         }
 
         return $query->whereRaw('1 = 0');
@@ -221,8 +229,10 @@ class Chamado extends Model
         }
 
         return $user->isAdmin()
-            || ($user->isResponsavel() && $this->user_id === $user->id)
-            || ($user->isColaborador() && $this->colaborador_id === $user->id);
+            || $user->isColaborador()
+            || ($user->isResponsavel() && (
+                blank($user->setor_id) || $this->setor_id === $user->setor_id
+            ));
     }
 
     public function isFinalizado(): bool
@@ -264,6 +274,10 @@ class Chamado extends Model
         }
 
         $this->status = self::STATUS_EM_ANDAMENTO;
+        if ($actor?->isColaborador() && blank($this->colaborador_id)) {
+            $this->colaborador_id = $actor->id;
+        }
+
         $this->iniciado_em ??= now();
         $this->iniciado_por_id = $actor?->id;
         $this->concluido_em = null;

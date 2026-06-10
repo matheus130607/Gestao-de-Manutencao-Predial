@@ -18,11 +18,20 @@ body {
 }
 
 .fi-topbar {
-    z-index: 40 !important;
+    position: fixed !important;
+    inset-block-start: 0;
+    inset-inline: 0;
+    height: var(--senai-topbar-height);
+    z-index: 50 !important;
 }
 
 .fi-topbar > nav {
+    height: var(--senai-topbar-height);
     min-width: 0;
+}
+
+.fi-main-ctn {
+    padding-top: var(--senai-topbar-height);
 }
 
 .senai-topbar-logo {

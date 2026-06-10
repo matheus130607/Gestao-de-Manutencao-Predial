@@ -27,14 +27,30 @@ class ResponsavelResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
+
     protected static ?string $navigationGroup = 'Administração';
+
     protected static ?int $navigationSort = 2;
+
     protected static ?string $modelLabel = 'Responsável';
+
     protected static ?string $pluralModelLabel = 'Responsáveis';
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->isAdmin() ?? false;
+        $user = auth()->user();
+
+        return (bool) $user?->ativo && ($user->isAdmin() || $user->isResponsavel());
+    }
+
+    public static function canView(Model $record): bool
+    {
+        $user = auth()->user();
+
+        return $record instanceof User
+            && $record->cargo === 'responsavel'
+            && (bool) $user?->ativo
+            && ($user->isAdmin() || ($user->isResponsavel() && $record->is($user)));
     }
 
     public static function canCreate(): bool
@@ -175,18 +191,30 @@ class ResponsavelResource extends Resource
                     ->boolean(),
             ])
             ->actions([
-                EditAction::make(),
+                EditAction::make()
+                    ->visible(fn (User $record): bool => static::canEdit($record)),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                ]),
+                ])->visible(fn (): bool => static::canDeleteAny()),
             ]);
     }
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('cargo', 'responsavel');
+        $query = parent::getEloquentQuery()->where('cargo', 'responsavel');
+        $user = auth()->user();
+
+        if ($user?->isAdmin()) {
+            return $query;
+        }
+
+        if ($user?->isResponsavel()) {
+            return $query->whereKey($user->id);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     public static function getPages(): array

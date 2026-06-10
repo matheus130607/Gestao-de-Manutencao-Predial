@@ -16,7 +16,6 @@ use App\Models\Patrimonio;
 use App\Models\Setor;
 use App\Models\User;
 use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -59,14 +58,11 @@ class Dashboard extends BaseDashboard
         'setor_id' => null,
         'responsavel_id' => null,
         'colaborador_id' => null,
-        'data_inicio' => null,
-        'data_fim' => null,
-        'prazo_situacao' => null,
     ];
 
     public function mount(): void
     {
-        if (! in_array($this->activeArea, ['chamados', 'indicadores'], true)) {
+        if (! in_array($this->activeArea, $this->allowedAreas(), true)) {
             $this->activeArea = 'chamados';
         }
 
@@ -80,10 +76,14 @@ class Dashboard extends BaseDashboard
 
     public function getSubheading(): ?string
     {
+        if (! $this->canViewIndicators()) {
+            return 'Operação dos chamados, prioridades e prazos em uma única tela.';
+        }
+
         return 'Operação dos chamados, prioridades, prazos e indicadores de desempenho em uma única tela.';
     }
 
-    public function getColumns(): int | string | array
+    public function getColumns(): int|string|array
     {
         return [
             'default' => 1,
@@ -94,6 +94,10 @@ class Dashboard extends BaseDashboard
 
     public function getWidgets(): array
     {
+        if (! $this->canViewIndicators()) {
+            return [];
+        }
+
         return [
             ChamadosStats::class,
             ChamadosEvolucao::class,
@@ -104,6 +108,21 @@ class Dashboard extends BaseDashboard
             RankingSetoresChamados::class,
             ChamadosRecentes::class,
         ];
+    }
+
+    public function canViewIndicators(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function allowedAreas(): array
+    {
+        return $this->canViewIndicators()
+            ? ['chamados', 'indicadores']
+            : ['chamados'];
     }
 
     public function form(Form $form): Form
@@ -159,7 +178,10 @@ class Dashboard extends BaseDashboard
                     ->label('Responsável')
                     ->options(fn (): array => User::query()
                         ->where('cargo', 'responsavel')
-                        ->when(auth()->user()?->isResponsavel(), fn (Builder $query): Builder => $query->whereKey(auth()->id()))
+                        ->when(
+                            auth()->user()?->isResponsavel() && filled(auth()->user()?->setor_id),
+                            fn (Builder $query): Builder => $query->where('setor_id', auth()->user()?->setor_id)
+                        )
                         ->orderBy('name')
                         ->pluck('name', 'id')
                         ->all())
@@ -183,29 +205,6 @@ class Dashboard extends BaseDashboard
                     ->native(false)
                     ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
                     ->live(),
-
-                DatePicker::make('data_inicio')
-                    ->label('Abertos de')
-                    ->displayFormat('d/m/Y')
-                    ->native(false)
-                    ->live(),
-
-                DatePicker::make('data_fim')
-                    ->label('Abertos até')
-                    ->displayFormat('d/m/Y')
-                    ->native(false)
-                    ->live(),
-
-                Select::make('prazo_situacao')
-                    ->label('Prazo')
-                    ->options([
-                        'atrasados' => 'Atrasados',
-                        'dentro_prazo' => 'Dentro do prazo',
-                        'sem_prazo' => 'Sem prazo',
-                    ])
-                    ->placeholder('Todos')
-                    ->native(false)
-                    ->live(),
             ])
             ->columns([
                 'default' => 1,
@@ -224,7 +223,7 @@ class Dashboard extends BaseDashboard
 
     public function setActiveArea(string $area): void
     {
-        if (! in_array($area, ['chamados', 'indicadores'], true)) {
+        if (! in_array($area, $this->allowedAreas(), true)) {
             return;
         }
 
@@ -242,9 +241,6 @@ class Dashboard extends BaseDashboard
             'setor_id' => null,
             'responsavel_id' => null,
             'colaborador_id' => null,
-            'data_inicio' => null,
-            'data_fim' => null,
-            'prazo_situacao' => null,
         ];
 
         $this->form->fill($this->filters);
@@ -255,13 +251,13 @@ class Dashboard extends BaseDashboard
     {
         return $this->getChamadosQuery()
             ->orderByRaw(
-                "CASE
+                'CASE
                     WHEN status NOT IN (?, ?) AND prioridade = ? THEN 0
                     WHEN status NOT IN (?, ?) AND prioridade = ? THEN 1
                     WHEN status = ? THEN 2
                     WHEN status = ? THEN 3
                     ELSE 4
-                END",
+                END',
                 [
                     Chamado::STATUS_CONCLUIDO,
                     Chamado::STATUS_CANCELADO,
@@ -489,9 +485,9 @@ class Dashboard extends BaseDashboard
         $patrimonio = Patrimonio::where('codigo', trim($codigo))->first();
 
         if ($patrimonio) {
-            $this->redirect('/admin/chamados/create?patrimonio_id=' . $patrimonio->id);
+            $this->redirect('/admin/chamados/create?patrimonio_id='.$patrimonio->id);
         } else {
-            $this->redirect('/admin/patrimonios/create?codigo=' . urlencode(trim($codigo)));
+            $this->redirect('/admin/patrimonios/create?codigo='.urlencode(trim($codigo)));
         }
     }
 
@@ -528,19 +524,6 @@ class Dashboard extends BaseDashboard
             ->when($filters['tipo'] ?? null, fn (Builder $query, string $tipo) => $query->where('tipo', $tipo))
             ->when($filters['setor_id'] ?? null, fn (Builder $query, string $setorId) => $query->where('setor_id', $setorId))
             ->when($filters['responsavel_id'] ?? null, fn (Builder $query, string $responsavelId) => $query->where('user_id', $responsavelId))
-            ->when($filters['colaborador_id'] ?? null, fn (Builder $query, string $colaboradorId) => $query->where('colaborador_id', $colaboradorId))
-            ->when($filters['data_inicio'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '>=', $date))
-            ->when($filters['data_fim'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '<=', $date))
-            ->when($filters['prazo_situacao'] ?? null, function (Builder $query, string $situacao): void {
-                match ($situacao) {
-                    'atrasados' => $query->atrasados(),
-                    'dentro_prazo' => $query
-                        ->ativos()
-                        ->whereNotNull('prazo')
-                        ->whereDate('prazo', '>=', now()->toDateString()),
-                    'sem_prazo' => $query->whereNull('prazo'),
-                    default => null,
-                };
-            });
+            ->when($filters['colaborador_id'] ?? null, fn (Builder $query, string $colaboradorId) => $query->where('colaborador_id', $colaboradorId));
     }
 }
