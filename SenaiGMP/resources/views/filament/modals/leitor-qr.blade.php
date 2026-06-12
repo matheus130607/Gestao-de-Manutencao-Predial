@@ -1,184 +1,134 @@
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+    #senai-qr-reader { border: none !important; padding: 0 !important; background: transparent !important; }
+    #senai-qr-reader > * { border: none !important; }
+    #senai-qr-reader__scan_region video { width: 100% !important; height: auto !important; display: block !important; border-radius: 0.75rem; }
+    #senai-qr-reader__dashboard { display: none !important; }
+    #senai-qr-reader video:not(:first-of-type) { display: none !important; }
+    #senai-qr-reader__header_message { display: none !important; }
+    .qr-shaded-region { display: none !important; }
+</style>
 
 <div
     x-data="{
-        aba: 'camera',
-        estado: 'idle',
-        codigoDetectado: '',
-        codigoDigitado: '',
-        stream: null,
-        animFrame: null,
+        scanner: null,
+        estado: 'iniciando',
+        codigo: '',
+        iniciado: false,
 
         init() {
-            this.$watch('aba', (valor) => {
-                if (valor === 'camera') {
-                    this.iniciarCamera();
-                } else {
-                    this.pararStream();
-                    this.estado = 'idle';
-                }
-            });
+            setTimeout(() => this.iniciar(), 450);
         },
 
         destroy() {
-            this.pararStream();
+            this.parar();
         },
 
-        async iniciarCamera() {
-            if (!this.$refs.video) return;
-            this.estado = 'lendo';
+        async iniciar() {
+            if (this.iniciado) return;
+            this.iniciado = true;
             try {
-                this.stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
-                });
-                const video = this.$refs.video;
-                if (!video) { this.pararStream(); return; }
-                video.srcObject = this.stream;
-                await video.play();
-                this.lerFrames();
-            } catch (e) {
-                this.estado = 'erro';
-                this.aba = 'digitar';
-            }
-        },
-
-        lerFrames() {
-            const video = this.$refs.video;
-            const canvas = this.$refs.canvas;
-            const ctx = canvas.getContext('2d');
-
-            const tick = () => {
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.width  = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const resultado = jsQR(imageData.data, imageData.width, imageData.height);
-
-                    if (resultado && resultado.data) {
-                        this.pararStream();
-                        this.codigoDetectado = resultado.data;
-                        this.estado = 'detectado';
-                        setTimeout(() => {
-                            $wire.buscarPatrimonio(resultado.data);
-                        }, 800);
-                        return;
-                    }
+                const cameras = await Html5Qrcode.getCameras();
+                if (!cameras || cameras.length === 0) {
+                    this.estado = 'erro';
+                    return;
                 }
-                this.animFrame = requestAnimationFrame(tick);
-            };
-
-            this.animFrame = requestAnimationFrame(tick);
+                // pega a última câmera da lista (em laptops é a única; em celulares costuma ser a traseira)
+                const fisica = cameras.find(c =>
+                    c.label && !/(virtual|obs|snap|manycam|droid|ivcam|epoc|splitcam)/i.test(c.label)
+                ) ?? cameras[0];
+                const camId = fisica.id;
+                this.scanner = new Html5Qrcode('senai-qr-reader');
+                await this.scanner.start(
+                    camId,
+                    { fps: 10 },
+                    (texto) => {
+                        this.codigo = texto;
+                        this.estado = 'detectado';
+                        this.parar();
+                        setTimeout(() => $wire.buscarPatrimonio(texto), 600);
+                    },
+                    () => {}
+                );
+                this.estado = 'lendo';
+            } catch (e) {
+                console.error('[QR] iniciar:', e);
+                this.iniciado = false;
+                this.estado = 'erro';
+            }
         },
 
-        pararStream() {
-            if (this.animFrame) {
-                cancelAnimationFrame(this.animFrame);
-                this.animFrame = null;
-            }
-            if (this.stream) {
-                this.stream.getTracks().forEach(t => t.stop());
-                this.stream = null;
+        parar() {
+            if (this.scanner) {
+                this.scanner.stop().catch(() => {}).finally(() => {
+                    try { this.scanner.clear(); } catch(e) {}
+                    this.scanner = null;
+                });
             }
         },
 
         buscarManual() {
-            const codigo = this.codigoDigitado.trim();
-            if (!codigo) return;
-            $wire.buscarPatrimonio(codigo);
+            const c = this.codigo.trim();
+            if (!c) return;
+            $wire.buscarPatrimonio(c);
         },
     }"
     x-init="init()"
-    @keydown.escape.window="pararStream()"
-    class="w-full"
+    class="w-full space-y-4"
 >
-    {{-- Título --}}
-    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
-        Identificar patrimônio
-    </p>
+    {{-- Container da câmera — sempre no DOM para html5-qrcode renderizar corretamente --}}
+    <div class="relative w-full rounded-xl bg-gray-900" style="min-height: 260px;">
 
-    {{-- Abas --}}
-    <div class="flex gap-2 mb-4 border-b border-gray-200 dark:border-gray-700">
-        <button
-            type="button"
-            @click="aba = 'camera'"
-            :class="aba === 'camera'
-                ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
-            class="pb-2 px-1 text-sm font-medium transition-colors"
+        <div id="senai-qr-reader" class="w-full"></div>
+
+        {{-- Overlay: iniciando --}}
+        <div
+            x-show="estado === 'iniciando'"
+            class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-900"
         >
-            Câmera
-        </button>
-        <button
-            type="button"
-            @click="aba = 'digitar'"
-            :class="aba === 'digitar'
-                ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
-            class="pb-2 px-1 text-sm font-medium transition-colors"
+            <svg class="animate-spin h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+            <span class="text-sm text-gray-400">Abrindo câmera...</span>
+        </div>
+
+        {{-- Overlay: detectado --}}
+        <div
+            x-show="estado === 'detectado'"
+            class="absolute inset-0 flex items-center justify-center bg-black/70"
         >
-            Digitar
-        </button>
-    </div>
-
-    {{-- Aba Câmera --}}
-    <div x-show="aba === 'camera'" x-intersect.once="iniciarCamera()" class="flex flex-col items-center gap-3">
-
-        {{-- Feedback de estado --}}
-        <div class="w-full text-center text-sm">
-            <span x-show="estado === 'idle'" class="text-gray-500 dark:text-gray-400">
-                Aponte a câmera para o QR Code da etiqueta
-            </span>
-            <span x-show="estado === 'lendo'" class="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
-                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            <div class="flex items-center gap-2 bg-green-500 text-white px-5 py-3 rounded-full text-sm font-semibold shadow-lg">
+                <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                 </svg>
-                Lendo...
-            </span>
-            <span x-show="estado === 'detectado'" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300 font-mono text-xs">
-                ✓ Código detectado: <span x-text="codigoDetectado"></span>
-            </span>
-            <span x-show="estado === 'erro'" class="text-danger-600 dark:text-danger-400">
-                Câmera não disponível — use a aba Digitar
-            </span>
+                <span x-text="'Código: ' + codigo" class="font-mono"></span>
+            </div>
         </div>
 
-        {{-- Vídeo --}}
-        <div class="relative w-full max-w-sm rounded-lg overflow-hidden bg-black">
-            <video
-                x-ref="video"
-                muted
-                playsinline
-                :class="estado === 'detectado' ? 'ring-4 ring-success-500' : ''"
-                class="w-full rounded-lg transition-all"
-            ></video>
+        {{-- Overlay: erro --}}
+        <div
+            x-show="estado === 'erro'"
+            class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gray-900"
+        >
+            <svg class="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm text-gray-400">Câmera não disponível.</span>
+            <span class="text-xs text-gray-500">Use o campo abaixo.</span>
         </div>
-
-        {{-- Canvas oculto para captura de frames --}}
-        <canvas x-ref="canvas" class="hidden"></canvas>
     </div>
 
-    {{-- Aba Digitar --}}
-    <div x-show="aba === 'digitar'" class="flex flex-col gap-3">
-        <div class="flex gap-2">
-            <input
-                x-model="codigoDigitado"
-                @keydown.enter="buscarManual()"
-                type="text"
-                placeholder="Cole ou digite o código da etiqueta"
-                class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-            <x-filament::button
-                type="button"
-                @click="buscarManual()"
-            >
-                Buscar
-            </x-filament::button>
-        </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500">
-            Pressione Enter ou clique em Buscar para localizar o patrimônio.
-        </p>
+    {{-- Digitação manual --}}
+    <div class="flex gap-2">
+        <input
+            x-model="codigo"
+            @keydown.enter="buscarManual()"
+            type="text"
+            placeholder="Ou digite o código da etiqueta"
+            class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+        <x-filament::button type="button" @click="buscarManual()">
+            Buscar
+        </x-filament::button>
     </div>
 </div>

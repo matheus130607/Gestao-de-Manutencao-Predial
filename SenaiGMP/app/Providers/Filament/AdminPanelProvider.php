@@ -63,6 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,
                 fn (): string => '
+                    <script src="' . asset('js/html5-qrcode.min.js') . '"></script>
                     <script src="' . asset('js/filament/sidebar.js') . '"></script>
                 '
             )
